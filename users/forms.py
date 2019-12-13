@@ -1,19 +1,17 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from django.contrib.auth.models import User
+from .models import User
 
 
 class SignUpForm(UserCreationForm):
-    contact_number = forms.CharField(
-        required=True,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Contact Number'})
-    )
 
     class Meta(UserCreationForm.Meta):
         model = User
+        fields = ['username', 'password1', 'password2', 'contact_number']
 
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Email'}),
+            'contact_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Contact Number'})
         }
     
     def __init__(self, *args, **kwargs):
