@@ -1,0 +1,60 @@
+{% load static %}
+
+<div class="header">
+  {% if show_logo %}
+  <div class="logo">
+    <img src="{% static 'img/drover_final_logo.svg' %}" height="32"/>
+  </div>
+  {% endif %}
+  {% if title %}
+  <div class="center header-title">
+    {{ title }}
+  </div>
+  {% endif %}
+  {% if nav_menu %}
+  <nav class="navbar navbar-dark drover-nav">
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggleExternalContent" aria-controls="navbarToggleExternalContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+  </nav>
+  <div class="collapse" id="navbarToggleExternalContent">
+    <div class="bg-purple p-4">
+      <ul class="nav flex-column">
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'dashboard' %}">
+            <span class="glyphicon glyphicon-home" aria-hidden="true"></span>Home
+          </a>
+        </li>
+        {% if group_id %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'send_message' group_id %}">
+              <span class="glyphicon glyphicon-volume-up" aria-hidden="true"></span>Message Your group
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'dashboard' %}">
+              <span class="glyphicon glyphicon-envelope" aria-hidden="true"></span>Your Inbox
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link"
+            {% if is_admin %}
+              href="{% url 'edit_group' group_id %}"
+            {% else %}
+              href="{% url 'view_group' group_id %}"
+            {% endif %}
+            >
+              <span class="glyphicon glyphicon-cog" aria-hidden="true"></span>View / Edit Group
+            </a>
+          </li>
+        {% endif %}
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'logout' %}">
+            <span class="glyphicon glyphicon-user" aria-hidden="true"></span>Logout
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+</div>

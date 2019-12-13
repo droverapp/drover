@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'header.html' with title="Invitation" nav_menu=True %}
+  <div class="container">
+    <h2>You have been Invited!</h2>
+    <p>You have been invited to Group: {{ group_name }}.
+      Click Accept to join the group.
+    </p>
+    <form class="form-container" method="post">
+      {% csrf_token %}
+      <div style="text-align: center;">
+        <button class="btn btn-primary" type="submit">Accept Invitation</button>
+      </div>
+    </form>
+  </div>
+  {% include 'footer.html' with show_logo=True %}
+{% endblock %}

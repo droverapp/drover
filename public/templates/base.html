@@ -1,0 +1,23 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel=stylesheet type=text/css href="{% static 'css/bootstrap.min.css' %}">
+    <link rel=stylesheet type=text/css href="{% static 'css/bootstrap-glyph.min.css' %}">
+    <link rel=stylesheet type=text/css href="{% static 'css/style.css' %}">
+    {% block page_css %}{% endblock %}
+    <title>Drover - {% block title %}{% endblock %}</title>
+  </head>
+  <body>
+    <main>
+      {% block content %}
+      {% endblock %}
+    </main>
+  </body>
+  <script src="{% static 'js/jquery-3.3.1.slim.min.js' %}"></script>
+  <script src="{% static 'js/popper.min.js' %}"></script>
+  <script src="{% static 'js/bootstrap.min.js' %}"></script>
+  {% block page_js %}{% endblock %}
+</html>

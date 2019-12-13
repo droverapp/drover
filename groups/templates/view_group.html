@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'header.html' with title="Details" nav_menu=True group_id=group.group_id %}
+  <div class="container" style="min-height: calc(100vh - 14.7rem);">
+    <h4 class="group-title">{{ group.name }}</h4>
+    <p class="group-description">
+      {{ group.description }}
+    </p>
+    <p>
+      Invite: {{ request.scheme }}://{{ request.get_host }}{% url 'invite' group.group_id %}
+    </p>
+    {% if schedules|length > 0 %}
+    <h5>Schedule:</h5>
+    {% for schedule in schedules %}
+      <div class="schedule">
+        <b class="schedule-title">{{ schedule.name }}</b>
+        <p>{{ schedule.schedule_time }}</p>
+        <p>{{ schedule.venue_name }}</p>
+        <p>
+          <a href="{{ schedule.venue_map_link }}">
+            {% if schedule.venue_address %}
+            {{ schedule.venue_address }} 
+            {% else %} 
+            {{ schedule.venue_map_link }}
+            {% endif %}
+          </a>
+        </p>
+        {% if schedule.instructions %}
+        <p>Note: {{ schedule.instructions }}</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+  <div class="footer_content">
+    <div class="item">
+      <a href="{% url 'send_message' group.group_id %}">Message Your Group</a>
+    </div>
+    <div class="item">
+      <a href="">Your Inbox</a>
+    </div>
+    <div class="item">
+      <a href="{% url 'edit_group' group.group_id %}">Edit Group</a>
+    </div>
+  </div>
+  {% include 'footer.html' with show_logo=True %}
+{% endblock %}

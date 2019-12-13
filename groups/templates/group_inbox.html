@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'header.html' with title="Inbox" nav_menu=True group_id=group.group_id %}
+  <div class="container">
+    <h4 class="group-title">All Messages</h4>
+    <div class="message-container">
+      {% for message in messages %}
+        <a class="message-details-link" href="{% url 'message_details' group.group_id message.id %}">
+          <div class="message">
+            <b>From: {{ message.sender }}</b>
+            <p>{{ message.message }}</p>
+            <small>Sent {{ message.message_time }}</small>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% include 'footer.html' with show_logo=True %}
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'header.html' with title="Add Member" nav_menu=True %}
+  <div class="container">
+    <form class="form-container" method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="email">Enter Email Address</label>
+        <input class="form-control" name="email" id="email" placeholder="Email ID" />
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="is_admin" id="is_admin">
+        <label class="form-check-label" for="is_admin">
+          Is Admin
+        </label>
+      </div>
+      <div style="text-align: center;">
+        <button class="btn btn-primary" type="submit">Add Member</button>
+      </div>
+    </form>
+  </div>
+  {% include 'footer.html' with show_logo=True %}
+{% endblock %}

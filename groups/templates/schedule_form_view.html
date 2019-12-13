@@ -1,0 +1,19 @@
+<div class="d-flex {% if not schedule %}hidden{% endif %}" id="schedule-view">
+  <span class="schedule-display-name">
+    {% if schedule %}{{ schedule.name }}{% endif %}
+  </span>
+  {% if schedule %}
+  <button class="btn btn-sm btn-secondary edit-schedule"
+    data-toggle="modal" data-target="#schedule-form-modal" data-sch-id="{{ schedule.id }}"
+    data-sch-name="{{ schedule.name }}"
+    data-sch-time="{{ schedule.schedule_time|date:'m/d/Y' }} {{ schedule.schedule_time|time:'h:i A' }}"
+    data-sch-venue-name="{{ schedule.venue_name }}"
+    data-sch-venue-address="{{ schedule.venue_address }}"
+    data-sch-venue-map="{{ schedule.venue_map_link }}"
+    data-sch-instructions="{{ schedule.instructions }}"
+    type="button">Edit</button>
+  {% endif %}
+  <button type="button" class="close"  aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>

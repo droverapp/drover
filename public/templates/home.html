@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="landing">
+  <div class="landing-container">
+    <div class="landing-logo">
+      <img src="{% static 'img/drover_final_logo.svg' %}" />
+      <p class="tagline">One Stop Communication</p>
+    </div>
+  </div>
+  <div class="signup-container">
+    <a class="btn btn-primary btn-orange" href="/users/login">Login</a>
+    <a href="/users/signup">Signup</a>
+  </div>
+</div>
+{% endblock %}

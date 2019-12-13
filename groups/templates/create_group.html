@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block page_css %}
+<link rel=stylesheet type=text/css href="{% static 'css/bootstrap-datetimepicker.min.css' %}">
+{% endblock %}
+{% block content %}
+  {% include 'header.html' with title="Create Group" nav_menu=True %}
+  <div class="container">
+    <form class="form-container" method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="name">Enter Group Name</label>
+        <input class="form-control" name="name" id="name" placeholder="Group Name" />
+      </div>
+      <div class="form-group">
+        <label for="description">Enter Group Description</label>
+        <textarea class="form-control" name="description" id="description" placeholder="Group Description"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="venue">Enter Venue</label>
+        <input class="form-control" name="venue" id="venue" placeholder="Venue" />
+      </div>
+      <div class="form-group">
+        <label for="event_date">Enter Event Date</label>
+        <div style="position: relative;">
+          <input class="form-control" name="event_date" id="event_date" placeholder="Event Date (YYYY-MM-DD)" />
+        </div>
+      </div>
+      <div class="schedule-form-container">
+        <h2>Add Schedules</h2>
+        <div id="schedule-view-container"></div>
+        <div style="text-align: center;">
+          <button class="btn btn-secondary" data-toggle="modal" data-target="#schedule-form-modal" type="button">Add Schedule</button>
+        </div>
+      </div>
+      <div style="text-align: center;">
+        <button class="btn btn-primary" type="submit">Create Group</button>
+      </div>
+    </form>
+  </div>
+  {% include 'schedule_form.html' %}
+  {% include 'schedule_form_modal.html' %}
+  {% include 'schedule_form_view.html' %}
+  {% include 'footer.html' with show_logo=True %}
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/add_schedule.js' %}"></script>
+<script src="{% static 'js/moment-with-locales.min.js' %}"></script>
+<script src="{% static 'js/bootstrap-datetimepicker.js' %}"></script>
+
+<script type="text/javascript">
+  $(function () {
+    $('#event_date').datetimepicker();
+    $('.schedule_datetimepicker').datetimepicker();
+  });
+</script>
+{% endblock %}

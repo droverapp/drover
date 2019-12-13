@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="landing">
+  <div class="landing-container">
+    <div class="landing-logo">
+      <img src="{% static 'img/drover_final_logo.svg' %}" />
+      <p class="tagline">One Stop Communication</p>
+    </div>
+  </div>
+  <div class="signup-container" style="color: #ffffff; padding: 1rem;">
+    <h4>Login</h4><hr style="border-color: white;height: 1px;width: 80%;" />
+    <form class="form-container" method="post">
+      {% csrf_token %}
+      <div class="control-group">
+          <label class="control-label" for="username">Email</label>
+          <div class="controls">
+              <input class="form-control" type="text" id="username" name="username"  placeholder="Email">
+          </div>
+      </div>
+      <div class="control-group">
+          <label class="control-label" for="password">Password</label>
+          <div class="controls">
+              <input class="form-control" type="password" name="password" id="password" placeholder="Password">
+          </div>
+      </div>
+      <div class="control-group">
+          <div class="controls" style="margin-top: 1rem;text-align: center;">
+              <button type="submit" class="btn btn-primary btn-orange">Login</button>
+          </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

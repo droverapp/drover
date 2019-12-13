@@ -1,0 +1,249 @@
+@font-face {
+  font-family: 'TrebuchetMS-Bold';
+  src: url(../fonts/Trebuchet-MS-Bold.woff);
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: TrebuchetMS-Bold;
+}
+
+.center {
+  text-align: center;
+}
+
+.landing {
+  background-color: #2a1e5c;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header,
+.footer {
+  background-color: #2a1e5c;
+  width: 100%;
+  min-height: 3rem;
+}
+
+.header {
+  top: 0;
+  position: fixed;
+  z-index: 99;
+  color: #ffffff;
+}
+
+.header .header-title {
+  font-size: 2rem;
+}
+
+.drover-nav {
+  position: absolute;
+  top: 0;
+}
+
+.drover-nav .navbar-toggler {
+  border: none;
+}
+
+.bg-purple {
+  background: #2a1e5c;
+}
+
+#navbarToggleExternalContent .bg-purple {
+  height: calc(100vh - 3rem);
+}
+
+.footer {
+  min-height: 3rem;
+  bottom: 0;
+  margin-top: 2rem;
+  position: relative;
+}
+
+.header .logo,
+.footer .logo {
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.container {
+  margin-top: 4rem;
+  min-height: calc(100vh - 9rem);
+}
+
+.landing-container {
+  width: 80%;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.landing-logo {
+  width: 100%;
+  text-align: center;
+}
+
+.landing-logo .tagline {
+  color: #f69220
+}
+
+.landing-logo img {
+  width: 100%;
+}
+
+.signup-container {
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+  margin-bottom: 1rem;
+  width: 100%;
+  align-items: center;
+}
+
+.signup-container a {
+  color: #f69220;
+  margin: 0.5rem;
+}
+
+.form-container {
+  width: 90%;
+  margin: auto;
+}
+
+.btn-primary,
+.btn-primary:hover,
+a.btn-primary,
+a.btn-primary:hover {
+  background-color: #2a1e5c;
+  color: #ffffff;
+  border: none;
+  width: 80%;
+}
+
+.btn-primary.btn-orange,
+.btn-primary.btn-orange:hover,
+a.btn-primary.btn-orange,
+a.btn-primary.btn-orange:hover {
+  background-color: #f69220;
+  color: #2a1e5c;
+}
+
+.group-container {
+  margin-bottom: 1.5rem;
+}
+
+.schedule-form-container {
+  margin-bottom: 3rem;
+}
+
+#schedule-view {
+  margin-bottom: 1rem;
+}
+
+.schedule-display-name {
+  flex-grow: 1;
+}
+
+.schedule {
+  margin: 1rem 0;
+}
+
+.schedule p {
+  margin: 0;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.bootstrap-datetimepicker-widget.dropdown-menu {
+  width: 17em !important;
+}
+
+.form-control {
+  height: calc(1.5em + .5rem + 2px);
+}
+
+.footer_content {
+  margin-bottom: -2rem;
+  background-color: #2a1e5c;
+}
+
+.footer_content .item {
+  padding: 0.5rem 1rem;
+  border-width: 0 0 1px 0;
+  border-style: solid;
+  border-color: #ffffff;
+}
+
+.footer_content a {
+  color: #ffffff
+}
+
+.edit-form label {
+  font-weight: bold;
+}
+
+.member-list {
+  padding: 0.25rem 1rem;
+}
+
+.member-list li {
+  border-bottom: #ccc 1px solid;
+  padding: 0.5rem 0;
+}
+
+a.nav-link {
+  color: #ffffff;
+  border-bottom: #85719b 1px solid;
+  font-size: 1.375rem;
+}
+
+.glyphicon {
+  margin-right: 0.5rem;
+}
+
+.message {
+  margin: 1rem auto;
+  border-bottom: 1px solid #85719b;
+}
+
+.message p,
+.message-detail p {
+  margin: 0;
+}
+
+.message small,
+.message-detail small {
+  color: #85719b;
+}
+
+.message-container a.message-details-link {
+  color: unset;
+  text-decoration: unset;
+}
+
+.message-detail {
+  border: 1px solid #85719b;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+}
+
+.reply-form .form-group {
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.reply-form input {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  height: 3rem;
+}
+
+.reply-form button {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}

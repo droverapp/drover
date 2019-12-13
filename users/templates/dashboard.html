@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'header.html' with title="Dashboard" nav_menu=True %}
+  <div class="container">
+    {% if owned_groups|length > 0 %}
+      <div class="group-parent-container">
+        <h2>Owned Groups</h2>
+        {% for group in owned_groups %}
+          <div class="group-container card">
+            <div class="card-body">
+              <div class="card-title">{{ group.name }}</div>
+              <div class="card-subtitle mb-2 text-muted">{{ group.event_date }}</div>
+              <p class="card-text">
+                {{ group.description }}
+                <div class="group-invite">Invite Link: www.link.com</div>
+              </p>
+              <div class="group-actions">
+                <a href="{% url 'view_group' group.group_id %}" class="card-link">View</a>
+                <a href="{% url 'edit_group' group.group_id %}" class="card-link">Edit</a>
+                <a href="{% url 'add_group_member' group.group_id %}" class="card-link">Add Members</a>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if member_groups|length > 0 %}
+      <div class="group-parent-container">
+        <h2>Member Groups</h2>
+        {% for group in member_groups %}
+          <div class="group-container card">
+            <div class="card-body">
+              <div class="card-title">{{ group.group.name }}</div>
+              <div class="card-subtitle mb-2 text-muted">{{ group.group.event_date }}</div>
+              <p class="card-text">
+                {{ group.group.description }}
+                <div class="group-invite">Invite Link: www.link.com</div>
+              </p>
+              <div class="group-actions">
+                <a href="{% url 'view_group' group.group.group_id %}" class="card-link">View</a>
+                <!-- <a href="{% url 'edit_group' group.group_id %}" class="card-link">Edit</a>
+                <a href="{% url 'add_group_member' group.group_id %}" class="card-link">Add Members</a> -->
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if owned_groups|length == 0 and member_groups|length == 0 %}
+      <div class="message">
+        There is no group you are part of.
+      </div>
+    {% endif %}
+    <a href="{% url 'create_group' %}">Create new group?</a>
+  </div>
+  {% include 'footer.html' with show_logo=True %}
+{% endblock %}

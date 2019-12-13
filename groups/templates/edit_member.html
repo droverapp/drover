@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'header.html' with title="Edit Member" nav_menu=True %}
+  <div class="container">
+    <form class="form-container" method="post">
+      {% csrf_token %}
+      <div class="custom-control custom-switch">
+        <input type="checkbox" name="is_admin" class="custom-control-input" 
+        id="customSwitch1" {% if member.is_admin %}checked{% endif %} />
+        <label class="custom-control-label" for="customSwitch1">Give Admin Access</label>
+      </div>
+      <div style="text-align: center;">
+        <button class="btn btn-primary" type="submit">Save Changes</button>
+      </div>
+    </form>
+  </div>
+  {% include 'footer.html' with show_logo=True %}
+{% endblock %}

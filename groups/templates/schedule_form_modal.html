@@ -1,0 +1,37 @@
+<div class="modal fade" tabindex="-1" role="dialog" id="schedule-form-modal" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Schedule Form</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="schedule_id" value="0"/>
+        <div class="form-group">
+          <input class="form-control" id="schedule_name" placeholder="Schedule Name" />
+        </div>
+        <div class="form-group">
+          <input class="form-control schedule_datetimepicker" id="schedule_time" placeholder="Schedule Date" />
+        </div>
+        <div class="form-group">
+          <input class="form-control" id="schedule_venue_name" placeholder="Schedule Place" />
+        </div>
+        <div class="form-group">
+          <input class="form-control" id="schedule_venue_address" placeholder="Schedule Address" />
+        </div>
+        <div class="form-group">
+          <input class="form-control" id="schedule_venue_map" placeholder="Map Link" />
+        </div>
+        <div class="form-group">
+          <input class="form-control" id="schedule_instructions" placeholder="Any other notes/instructions" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" id="save-schedule" class="btn btn-primary">Save Schedule</button>
+      </div>
+    </div>
+  </div>
+</div>
