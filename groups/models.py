@@ -45,9 +45,11 @@ class GroupMessage(models.Model):
         ('AM', 'Admin to Members'),
         ('MA', 'Member to Admin'),
     ]
+    message_id = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
     message = models.TextField()
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='message_sent', on_delete=models.CASCADE)
     receiver = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='message_received', on_delete=models.CASCADE, blank=True, null=True)
+    reply_to = models.UUIDField(blank=True, null=True)
     message_time = models.DateTimeField(default=datetime.now, blank=True, null=True)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
     status = models.CharField(max_length=1, choices=STATUSES, default='P')

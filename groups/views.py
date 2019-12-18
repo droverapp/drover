@@ -203,17 +203,28 @@ def inbox(request, group_id):
     current_group_member = GroupMember.objects.filter(group=group, user=request.user).first()
     if current_group_member:
         if current_group_member.is_admin:
-            messages = GroupMessage.objects.filter(
+            sent_messages = GroupMessage.objects.filter(
                 group=group,
                 message_type='AM'
             ).all().order_by('-message_time')
-        else:
-            messages = GroupMessage.objects.filter(
+            received_messages = GroupMessage.objects.filter(
                 group=group,
                 message_type='MA'
             ).all().order_by('-message_time')
+        else:
+            sent_messages = GroupMessage.objects.filter(
+                group=group,
+                message_type='MA',
+                sender=request.user
+            ).all().order_by('-message_time')
+            received_messages = GroupMessage.objects.filter(
+                group=group,
+                message_type='AM'
+            ).all().order_by('-message_time')
         
-        return render(request, 'group_inbox.html', {'group': group, 'messages': messages})
+        return render(request, 'group_inbox.html', 
+            {'group': group, 'sent_messages': sent_messages,
+            'received_messages': received_messages})
     return redirect('dashboard')
 
 @login_required
@@ -225,26 +236,25 @@ def message_details(request, group_id, message_id):
             message_type = 'AM' if current_group_member.is_admin else 'MA'
             receiver = User.objects.filter(username=request.POST['receiver_email']).first()
             message = GroupMessage(
-                message=request.POST['message'],
+                message=request.POST['reply'],
                 sender=request.user,
+                receiver=receiver,
                 group=group,
                 message_time=datetime.datetime.now(),
                 message_type=message_type
             )
             message.save()
-            send_text_message('xxxxxxxx', request.POST['message'])
+            send_text_message(receiver.contact_number, request.POST['message'])
             return redirect('view_group', group.group_id)
         if current_group_member.is_admin:
             message = GroupMessage.objects.filter(
                 group=group,
-                message_type='AM',
-                id=message_id
+                message_id=message_id
             ).first()
         else:
             message = GroupMessage.objects.filter(
                 group=group,
-                message_type='MA',
-                id=message_id
+                message_id=message_id
             ).first()
         
         return render(request, 'message_details.html', {'group': group, 'message': message})
