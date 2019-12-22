@@ -23,7 +23,7 @@ environ.Env.read_env()
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = ')f*^mbvogp-o%t&t2$9u8k&89%0$jn=vv_o_0zt7+wtw1c5i3l'
+SECRET_KEY = env.str('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
@@ -133,9 +133,9 @@ EMAIL_USE_TLS = True
 
 
 # Twilio settings
-FROM_NUMBER = '+13342923994'
-TWILIO_SSID = 'AC2a1313c3bab8341d3841b98142ab15cb'
-TWILIO_AUTH_TOKEN = '10830c0c768315cd3caf3e9ca9ca0cb2'
+FROM_NUMBER = env.str('FROM_NUMBER')
+TWILIO_SSID = env.str('TWILIO_SSID')
+TWILIO_AUTH_TOKEN = env.str('TWILIO_AUTH_TOKEN')
 
 
 # Static files (CSS, JavaScript, Images)
