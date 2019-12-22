@@ -10,10 +10,13 @@
           <div class="group-container card">
             <div class="card-body">
               <div class="card-title">{{ group.name }}</div>
+              {% if group.event_date %}
               <div class="card-subtitle mb-2 text-muted">{{ group.event_date }}</div>
+              {% endif %}
               <p class="card-text">
                 {{ group.description }}
-                <div class="group-invite">Invite Link: www.link.com</div>
+                <div class="group-invite">Invite Link: 
+                    {{ request.scheme }}://{{ request.get_host }}{% url 'invite' group.group_id %}</div>
               </p>
               <div class="group-actions">
                 <a href="{% url 'view_group' group.group_id %}" class="card-link">View</a>
@@ -32,15 +35,16 @@
           <div class="group-container card">
             <div class="card-body">
               <div class="card-title">{{ group.group.name }}</div>
+              {% if group.group.event_date %}
               <div class="card-subtitle mb-2 text-muted">{{ group.group.event_date }}</div>
+              {% endif %}
               <p class="card-text">
                 {{ group.group.description }}
-                <div class="group-invite">Invite Link: www.link.com</div>
+                <div class="group-invite">Invite Link: 
+                  {{ request.scheme }}://{{ request.get_host }}{% url 'invite' group.group.group_id %}</div>
               </p>
               <div class="group-actions">
                 <a href="{% url 'view_group' group.group.group_id %}" class="card-link">View</a>
-                <!-- <a href="{% url 'edit_group' group.group_id %}" class="card-link">Edit</a>
-                <a href="{% url 'add_group_member' group.group_id %}" class="card-link">Add Members</a> -->
               </div>
             </div>
           </div>

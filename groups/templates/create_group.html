@@ -18,7 +18,10 @@
       </div>
       <div class="form-group">
         <label for="venue">Enter Venue</label>
-        <input class="form-control" name="venue" id="venue" placeholder="Venue" />
+        <input class="form-control" name="venue" id="venue" placeholder="Venue"
+        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"/>
+        <div class="dropdown-menu location-results" aria-labelledby="dropdownMenuLink">
+        </div>
       </div>
       <div class="form-group">
         <label for="event_date">Enter Event Date</label>
@@ -48,6 +51,7 @@
 <script src="{% static 'js/add_schedule.js' %}"></script>
 <script src="{% static 'js/moment-with-locales.min.js' %}"></script>
 <script src="{% static 'js/bootstrap-datetimepicker.js' %}"></script>
+<script src="{% static 'js/search_location.js' %}"></script>
 
 <script type="text/javascript">
   $(function () {

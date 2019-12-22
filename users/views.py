@@ -14,6 +14,8 @@ def signup(request):
             raw_password = form.cleaned_data.get('password1')
             user = authenticate(username=username, password=raw_password)
             login(request, user)
+            if request.GET.get('next', None):
+                return redirect(request.GET['next'])
             return redirect('dashboard')
     else:
         form = SignUpForm()
@@ -28,8 +30,10 @@ def login_view(request):
         if user is not None:
             if user.is_active:
                 login(request, user)
+                if request.GET.get('next', None):
+                    return redirect(request.GET['next'])
                 return redirect('dashboard')
-    return render(request, 'login.html')
+    return render(request, 'login.html', {'next': request.GET.get('next', None)})
 
 def logout_view(request):
     logout(request)

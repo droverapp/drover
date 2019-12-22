@@ -1,8 +1,9 @@
 import datetime
 
+from django.db.models import Q
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
+from users.models import User
 
 from .models import Group, GroupMember, GroupSchedule, \
 GroupMessage
@@ -15,7 +16,7 @@ def create_group(request):
     if request.method == 'POST':
         event_date = datetime.datetime.strptime(
                 request.POST['event_date'], '%m/%d/%Y %I:%M %p'
-            ).strftime('%Y-%m-%d %H:%M')
+            ).strftime('%Y-%m-%d %H:%M') if request.POST['event_date'] else None
         group = Group(
             name=request.POST['name'],
             event_date=event_date,
@@ -176,7 +177,12 @@ def send_message(request, group_id):
                 message_type=message_type
             )
             message.save()
-            send_text_message('xxxxxxx', request.POST['message'])
+            message_receivers = GroupMember.objects.filter(
+                group=group,
+                is_admin=message_type=='MA'
+            )
+            for receiver in message_receivers:
+                send_text_message(receiver.user.contact_number, request.POST['message'])
             return redirect('view_group', group.group_id)
         return render(request, 'compose_message.html', {'is_admin': current_group_member.is_admin})
     return redirect('dashboard')
@@ -220,6 +226,9 @@ def inbox(request, group_id):
             received_messages = GroupMessage.objects.filter(
                 group=group,
                 message_type='AM'
+                
+            ).filter(
+                Q(receiver=None) | Q(receiver=request.user)
             ).all().order_by('-message_time')
         
         return render(request, 'group_inbox.html', 
@@ -244,7 +253,7 @@ def message_details(request, group_id, message_id):
                 message_type=message_type
             )
             message.save()
-            send_text_message(receiver.contact_number, request.POST['message'])
+            send_text_message(receiver.contact_number, request.POST['reply'])
             return redirect('view_group', group.group_id)
         if current_group_member.is_admin:
             message = GroupMessage.objects.filter(

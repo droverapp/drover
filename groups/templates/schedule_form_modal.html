@@ -16,7 +16,10 @@
           <input class="form-control schedule_datetimepicker" id="schedule_time" placeholder="Schedule Date" />
         </div>
         <div class="form-group">
-          <input class="form-control" id="schedule_venue_name" placeholder="Schedule Place" />
+          <input class="form-control" id="schedule_venue_name" placeholder="Schedule Place" 
+          data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"/>
+          <div class="dropdown-menu location-results" aria-labelledby="dropdownMenuLink">
+          </div>
         </div>
         <div class="form-group">
           <input class="form-control" id="schedule_venue_address" placeholder="Schedule Address" />

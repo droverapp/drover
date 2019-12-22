@@ -25,10 +25,11 @@
               <input class="form-control" type="password" name="password" id="password" placeholder="Password">
           </div>
       </div>
-      <div class="control-group">
+      <div class="control-group" style="text-align: center;">
           <div class="controls" style="margin-top: 1rem;text-align: center;">
               <button type="submit" class="btn btn-primary btn-orange">Login</button>
           </div>
+          <a href="/users/signup{% if next %}?next={{ next }}{% endif %}">Not a user? Signup</a>
       </div>
     </form>
   </div>

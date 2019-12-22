@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block page_css %}
+<link rel=stylesheet type=text/css href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+crossorigin="">
+{% endblock %}
+{% block content %}
+  {% include 'header.html' with title="Map" nav_menu=True %}
+  <div class="container"><div id="mapid"></div></div>
+  {% include 'footer.html' with show_logo=True %}
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/leaflet.js' %}"></script>
+<script type="text/javascript">
+  $(function () {
+    var map = L.map('mapid').setView([{{ lat }},{{ lon }}], 17);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    L.marker([{{ lat }},{{ lon }}]).addTo(map)
+        .openPopup();
+  });
+</script>
+{% endblock %}

@@ -6,8 +6,8 @@ from datetime import datetime
 class Group(models.Model):
     group_id = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=120)
-    event_date = models.DateTimeField()
-    venue = models.CharField(max_length=255)
+    event_date = models.DateTimeField(blank=True, null=True)
+    venue = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
@@ -29,7 +29,7 @@ class GroupSchedule(models.Model):
     name = models.CharField(max_length=255)
     schedule_time = models.DateTimeField()
     instructions = models.TextField(blank=True)
-    venue_name = models.CharField(max_length=255)
+    venue_name = models.CharField(max_length=255, null=True, blank=True)
     venue_address=models.TextField(blank=True)
     venue_map_link = models.CharField(max_length=255)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
