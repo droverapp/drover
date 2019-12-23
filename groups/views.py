@@ -2,6 +2,7 @@ import datetime
 
 from django.db.models import Q
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from users.models import User
 
@@ -181,8 +182,15 @@ def send_message(request, group_id):
                 group=group,
                 is_admin=message_type=='MA'
             )
+            message_url = '{}://{}{}'.format(
+                request.scheme,
+                request.get_host(),
+                reverse('message_details', 
+                    kwargs={'group_id': group.group_id, 'message_id': message.message_id}
+                )
+            )
             for receiver in message_receivers:
-                send_text_message(receiver.user.contact_number, request.POST['message'])
+                send_text_message(receiver.user.contact_number, request.POST['message'], message_url)
             return redirect('view_group', group.group_id)
         return render(request, 'compose_message.html', {'is_admin': current_group_member.is_admin})
     return redirect('dashboard')
@@ -253,7 +261,15 @@ def message_details(request, group_id, message_id):
                 message_type=message_type
             )
             message.save()
-            send_text_message(receiver.contact_number, request.POST['reply'])
+
+            message_url = '{}://{}{}'.format(
+                request.scheme,
+                request.get_host(),
+                reverse('message_details', 
+                    kwargs={'group_id': group.group_id, 'message_id': message.message_id}
+                )
+            )
+            send_text_message(receiver.contact_number, request.POST['reply'], message_url)
             return redirect('view_group', group.group_id)
         if current_group_member.is_admin:
             message = GroupMessage.objects.filter(
