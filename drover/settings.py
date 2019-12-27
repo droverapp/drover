@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'groups',
     'users',
     'public',
+    'shortener',
 ]
 
 MIDDLEWARE = [

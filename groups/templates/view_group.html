@@ -8,7 +8,7 @@
       {{ group.description }}
     </p>
     <p>
-      Invite: {{ request.scheme }}://{{ request.get_host }}{% url 'invite' group.group_id %}
+      Invite: {{ request.scheme }}://{{ request.get_host }}{{ group.get_invite_url }}
     </p>
     {% if schedules|length > 0 %}
     <h5>Schedule:</h5>

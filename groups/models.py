@@ -16,7 +16,8 @@ class Group(models.Model):
 
     def get_invite_url(self):
         from django.urls import reverse
-        return reverse('invite', args=[self.group_id])
+        from shortener.utils import generate_short_url
+        return generate_short_url(reverse('invite', args=[self.group_id]))
 
 
 class GroupMember(models.Model):

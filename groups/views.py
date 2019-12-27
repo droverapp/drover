@@ -10,6 +10,7 @@ from .models import Group, GroupMember, GroupSchedule, \
 GroupMessage
 from .emails import send_invitation_email
 from .sms import send_text_message
+from shortener.utils import generate_short_url
 
 
 @login_required
@@ -185,8 +186,10 @@ def send_message(request, group_id):
             message_url = '{}://{}{}'.format(
                 request.scheme,
                 request.get_host(),
-                reverse('message_details', 
-                    kwargs={'group_id': group.group_id, 'message_id': message.message_id}
+                generate_short_url(
+                    reverse('message_details', 
+                        kwargs={'group_id': group.group_id, 'message_id': message.message_id}
+                    )
                 )
             )
             for receiver in message_receivers:

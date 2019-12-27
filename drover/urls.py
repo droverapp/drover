@@ -20,5 +20,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('groups/', include('groups.urls')),
     path('users/', include('users.urls')),
+    path('s/', include('shortener.urls')),
     path('', include('public.urls')),
 ]

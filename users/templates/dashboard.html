@@ -16,7 +16,7 @@
               <p class="card-text">
                 {{ group.description }}
                 <div class="group-invite">Invite Link: 
-                    {{ request.scheme }}://{{ request.get_host }}{% url 'invite' group.group_id %}</div>
+                  {{ request.scheme }}://{{ request.get_host }}{{ group.get_invite_url }}</div>
               </p>
               <div class="group-actions">
                 <a href="{% url 'view_group' group.group_id %}" class="card-link">View</a>
@@ -41,7 +41,7 @@
               <p class="card-text">
                 {{ group.group.description }}
                 <div class="group-invite">Invite Link: 
-                  {{ request.scheme }}://{{ request.get_host }}{% url 'invite' group.group.group_id %}</div>
+                  {{ request.scheme }}://{{ request.get_host }}{{ group.group.get_invite_url }}</div>
               </p>
               <div class="group-actions">
                 <a href="{% url 'view_group' group.group.group_id %}" class="card-link">View</a>
