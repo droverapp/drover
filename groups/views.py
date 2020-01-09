@@ -115,7 +115,8 @@ def view_group(request, group_id):
         group_members = group.groupmember_set.all()
         schedules = group.groupschedule_set.all().order_by('schedule_time')
         return render(request, 'view_group.html', 
-        {'group': group, 'group_members': group_members, 'schedules': schedules})
+        {'group': group, 'is_admin': group_member.is_admin,
+        'group_members': group_members, 'schedules': schedules})
     return redirect('dashboard')
 
 @login_required

@@ -35,7 +35,7 @@
   </div>
   <div class="footer_content">
     <div class="item">
-      <a href="{% url 'send_message' group.group_id %}">Message Your Group</a>
+      <a href="{% url 'send_message' group.group_id %}">Message {% if is_admin %}Your Group {% else %}Group Admins {% endif %}</a>
     </div>
     <div class="item">
       <a href="{% url 'inbox' group.group_id %}">Your Inbox</a>
