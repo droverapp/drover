@@ -35,7 +35,13 @@ body, html {
 }
 
 .header .header-title {
-  font-size: 2rem;
+  font-size: 1.75rem;
+  max-width: calc(100% - 87px);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-right: 5px;
+  margin-left: 87px;
 }
 
 .drover-nav {
