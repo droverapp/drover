@@ -9,6 +9,12 @@
         <p>
           {{ field.placeholder }}<br>
           {{ field }}
+          {% if field.name == 'contact_number' %}
+            <small>
+              It is suggested to avoid using Google Voice and other similar service numbers
+              for the best experiences.
+            </small>
+          {% endif %}
           <!-- {% if field.help_text %}
             <small style="color: grey">{{ field.help_text }}</small>
           {% endif %} -->
