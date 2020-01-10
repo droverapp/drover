@@ -36,21 +36,23 @@ body, html {
 
 .header .header-title {
   font-size: 1.75rem;
-  max-width: calc(100% - 87px);
+  max-width: calc(100% - 65px);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   margin-right: 5px;
-  margin-left: 87px;
+  margin-left: 65px;
 }
 
 .drover-nav {
   position: absolute;
   top: 0;
+  padding: 0.5rem;
 }
 
 .drover-nav .navbar-toggler {
   border: none;
+  font-size: 1.5rem;
 }
 
 .bg-purple {
