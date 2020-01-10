@@ -4,7 +4,7 @@
 <link rel=stylesheet type=text/css href="{% static 'css/bootstrap-datetimepicker.min.css' %}">
 {% endblock %}
 {% block content %}
-  {% include 'header.html' with title="Edit Group" nav_menu=True group_id=group.group_id %}
+  {% include 'header.html' with title="Edit Group" nav_menu=True group_id=group.group_id page='edit' %}
   <div class="container">
     <form class="form-container edit-form" method="post">
       {% csrf_token %}
