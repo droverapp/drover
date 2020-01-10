@@ -32,7 +32,7 @@ $(document).ready(function() {
     search(query, 'json', 5, $(this).parent().find('.location-results'), 'event');
   });
 
-  $(document).on('keyup', '#schedule_venue_name', function() {
+  $(document).on('keyup', '#schedule_venue_address', function() {
     const query = $(this).val();
     console.log(query);
     search(query, 'json', 5, $(this).parent().find('.location-results'), 'schedule');
@@ -43,7 +43,6 @@ $(document).ready(function() {
     if ($(this).hasClass('event-venue')) {
       $('#venue').val($(this).data('display-name'));
     } else if ($(this).hasClass('schedule-venue')) {
-      $('#schedule_venue_name').val($(this).data('display-name').split(',')[0]);
       $('#schedule_venue_address').val($(this).data('display-name'));
       const map_link = `${window.location.protocol}//${window.location.host}/mapview/?lon=${$(this).data('longitude')}&lat=${$(this).data('latitude')}`;
       $('#schedule_venue_map').val(map_link);
