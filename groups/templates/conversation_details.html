@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'header.html' with title=message.sender nav_menu=True group_id=group.group_id %}
+  <div class="container" style="min-height: calc(100vh - 11.075rem);">
+    <div class="message-detail">
+      <p>{{ message.message }}</p>
+      <small>From: {{ message.sender }}</small>
+      <small>Sent {{ message.message_time }}</small>
+    </div>
+    {% for conversation in conversations %}
+      <div class="message-detail">
+        <p>{{ conversation.message }}</p>
+        <small>From: {{ conversation.sender }}</small>
+        <small>Sent {{ conversation.message_time }}</small>
+      </div>
+    {% endfor %}
+  </div>
+  <form class="reply-form form-container d-flex" method="post" style="margin-top: 1rem;">
+    {% csrf_token %}
+    <div class="form-group" style="flex-shrink: 0;">
+      <input class="form-control" name="reply" id="reply" placeholder="REPLY" />
+    </div>
+    <input type="hidden" name="receiver_email" value="{{ sender.username }}" />
+    <button class="btn btn-primary" type="submit">Send</button>
+  </form>
+  {% include 'footer.html' with show_logo=True %}
+{% endblock %}

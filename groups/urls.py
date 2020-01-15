@@ -11,4 +11,6 @@ urlpatterns = [
     path('<group_id>/invite/', views.invite, name='invite'),
     path('<group_id>/inbox/', views.inbox, name='inbox'),
     path('<group_id>/message/<message_id>', views.message_details, name='message_details'),
+    path('<group_id>/conversation/', views.conversations, name='conversations'),
+    path('<group_id>/conversation/<message_id>', views.conversation_details, name='conversation_details'),
 ]

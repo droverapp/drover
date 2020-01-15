@@ -1,6 +1,6 @@
 import datetime
 
-from django.db.models import Q
+from django.db.models import Q, Count, OuterRef, Subquery
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
@@ -131,7 +131,7 @@ def add_group_member(request, group_id):
                 new_group_member = GroupMember(
                     user=user,
                     group=group,
-                    is_admin=request.POST['is_admin']
+                    is_admin=request.POST.get('is_admin', False)
                 )
                 new_group_member.save()
                 send_invitation_email(
@@ -249,6 +249,74 @@ def inbox(request, group_id):
     return redirect('dashboard')
 
 @login_required
+def conversations(request, group_id):
+    group = Group.objects.filter(group_id=group_id).first()
+    current_group_member = GroupMember.objects.filter(group=group, user=request.user).first()
+    if current_group_member:
+        if current_group_member.is_admin:
+            sent_messages = GroupMessage.objects.filter(
+                group=group,
+                message_type='AM',
+                reply_to__isnull=True
+            ).all().order_by('-message_time').annotate(
+                conversation_count=Subquery(
+                    GroupMessage.objects.filter(
+                        reply_to=OuterRef('message_id')
+                    ).values('reply_to')
+                    .annotate(count=Count('pk'))
+                    .values('count')
+                )
+            )
+            received_messages = GroupMessage.objects.filter(
+                group=group,
+                message_type='MA',
+                reply_to__isnull=True
+            ).all().order_by('-message_time').annotate(
+                conversation_count=Subquery(
+                    GroupMessage.objects.filter(
+                        reply_to=OuterRef('message_id')
+                    ).values('reply_to')
+                    .annotate(count=Count('pk'))
+                    .values('count')
+                )
+            )
+        else:
+            sent_messages = GroupMessage.objects.filter(
+                group=group,
+                message_type='MA',
+                sender=request.user,
+                reply_to__isnull=True
+            ).all().order_by('-message_time').annotate(
+                conversation_count=Subquery(
+                    GroupMessage.objects.filter(
+                        reply_to=OuterRef('message_id')
+                    ).values('reply_to')
+                    .annotate(count=Count('pk'))
+                    .values('count')
+                )
+            )
+            received_messages = GroupMessage.objects.filter(
+                group=group,
+                message_type='AM',
+                reply_to__isnull=True
+            ).filter(
+                Q(receiver=None) | Q(receiver=request.user)
+            ).all().order_by('-message_time').annotate(
+                conversation_count=Subquery(
+                    GroupMessage.objects.filter(
+                        reply_to=OuterRef('message_id')
+                    ).values('reply_to')
+                    .annotate(count=Count('pk'))
+                    .values('count')
+                )
+            )
+        
+        return render(request, 'group_conversation.html', 
+            {'group': group, 'sent_messages': sent_messages,
+            'received_messages': received_messages})
+    return redirect('dashboard')
+
+@login_required
 def message_details(request, group_id, message_id):
     group = Group.objects.filter(group_id=group_id).first()
     current_group_member = GroupMember.objects.filter(group=group, user=request.user).first()
@@ -260,6 +328,7 @@ def message_details(request, group_id, message_id):
                 message=request.POST['reply'],
                 sender=request.user,
                 receiver=receiver,
+                reply_to=message_id,
                 group=group,
                 message_time=datetime.datetime.now(),
                 message_type=message_type
@@ -287,4 +356,53 @@ def message_details(request, group_id, message_id):
             ).first()
         
         return render(request, 'message_details.html', {'group': group, 'message': message})
+    return redirect('dashboard')
+
+@login_required
+def conversation_details(request, group_id, message_id):
+    group = Group.objects.filter(group_id=group_id).first()
+    current_group_member = GroupMember.objects.filter(group=group, user=request.user).first()
+    if current_group_member:
+        if request.method == 'POST':
+            message_type = 'AM' if current_group_member.is_admin else 'MA'
+            receiver = User.objects.filter(username=request.POST['receiver_email']).first()
+            message = GroupMessage(
+                message=request.POST['reply'],
+                sender=request.user,
+                receiver=receiver,
+                reply_to=message_id,
+                group=group,
+                message_time=datetime.datetime.now(),
+                message_type=message_type
+            )
+            message.save()
+
+            message_url = '{}://{}{}'.format(
+                request.scheme,
+                request.get_host(),
+                reverse('message_details', 
+                    kwargs={'group_id': group.group_id, 'message_id': message.message_id}
+                )
+            )
+            send_text_message(receiver.contact_number, request.POST['reply'], message_url)
+            return redirect('conversation_details', group_id, message_id)
+        message = GroupMessage.objects.filter(
+            group=group,
+            message_id=message_id
+        ).first()
+        conversations = GroupMessage.objects.filter(
+            group=group,
+            reply_to=message_id
+        ).filter(
+            Q(sender=request.user) | Q(receiver=request.user)
+        ).all()
+
+        sender = message.sender
+        if sender == request.user:
+            for conversation in conversations:
+                if conversation.sender != request.user and message.message_type != conversation.message_type:
+                    sender = conversation.sender
+                    break
+        
+        return render(request, 'conversation_details.html', {'group': group, 'message': message, 'conversations': conversations, 'sender': sender})
     return redirect('dashboard')

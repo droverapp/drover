@@ -272,3 +272,8 @@ a.nav-link {
 #mapid { 
   height: 350px;
 }
+
+.conversation_count{
+  background-color: #85719b55;
+  padding: 3px;
+}

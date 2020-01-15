@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'header.html' with title="Inbox" nav_menu=True group_id=group.group_id %}
+  <div class="container">
+    <h4 class="group-title">Sent Messages</h4>
+    <div class="message-container">
+      {% for message in sent_messages %}
+        <a class="message-details-link" href="{% url 'conversation_details' group.group_id message.message_id %}">
+          <div class="message">
+            <b>From: {{ message.sender }}</b>
+            <p>{{ message.message }} 
+              {% if message.conversation_count %}
+              <span class="conversation_count">+{{ message.conversation_count }}</span>
+              {% endif %}
+            </p>
+            <small>Sent {{ message.message_time }}</small>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+    <h4 class="group-title">Received Messages</h4>
+    <div class="message-container">
+      {% for message in received_messages %}
+        <a class="message-details-link" href="{% url 'conversation_details' group.group_id message.message_id %}">
+          <div class="message">
+            <b>From: {{ message.sender }}</b>
+            <p>{{ message.message }}  
+              {% if message.conversation_count %}
+              <span class="conversation_count">+{{ message.conversation_count }}</span>
+              {% endif %}
+            </p>
+            <small>Sent {{ message.message_time }}</small>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% include 'footer.html' with show_logo=True %}
+{% endblock %}
