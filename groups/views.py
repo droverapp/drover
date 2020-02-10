@@ -338,8 +338,10 @@ def message_details(request, group_id, message_id):
             message_url = '{}://{}{}'.format(
                 request.scheme,
                 request.get_host(),
-                reverse('message_details', 
-                    kwargs={'group_id': group.group_id, 'message_id': message.message_id}
+                generate_short_url(
+                    reverse('message_details', 
+                        kwargs={'group_id': group.group_id, 'message_id': message.message_id}
+                    )
                 )
             )
             send_text_message(receiver.contact_number, request.POST['reply'], message_url)
@@ -380,8 +382,10 @@ def conversation_details(request, group_id, message_id):
             message_url = '{}://{}{}'.format(
                 request.scheme,
                 request.get_host(),
-                reverse('message_details', 
-                    kwargs={'group_id': group.group_id, 'message_id': message.message_id}
+                generate_short_url(
+                    reverse('message_details', 
+                        kwargs={'group_id': group.group_id, 'message_id': message.message_id}
+                    )
                 )
             )
             send_text_message(receiver.contact_number, request.POST['reply'], message_url)
