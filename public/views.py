@@ -1,7 +1,7 @@
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
-from twilio.twiml.messaging_response import Message, MessagingResponse
+from twilio.twiml.messaging_response import MessagingResponse
 
 def home(request):
     return render(request, 'home.html')
@@ -22,5 +22,5 @@ def sms_reply(request):
         # Add a message
         message = resp.message("Do Not Reply via SMS. Please visit the link given in previous message to send a reply")
 
-        return HttpResponse(str(message))
+        return HttpResponse(str(resp))
     return redirect('home')
