@@ -136,14 +136,14 @@ def add_group_member(request, group_id):
                 new_group_member.save()
                 send_invitation_email(
                     group.name,
-                    'saptak013@gmail.com',
-                    ['saptak013@gmail.com'],
+                    'invites@droverapp.com',
+                    [request.POST['email']],
                 )
             else:
                 send_invitation_email(
                     group.name,
-                    'saptak013@gmail.com',
-                    ['saptak013@gmail.com'],
+                    'invites@droverapp.com',
+                    [request.POST['email']],
                     invite_url
                 )
             return redirect('view_group',  group.group_id)
