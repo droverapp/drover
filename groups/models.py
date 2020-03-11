@@ -21,8 +21,10 @@ class Group(models.Model):
 
 
 class GroupMember(models.Model):
+    member_id = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     is_admin = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
 
 

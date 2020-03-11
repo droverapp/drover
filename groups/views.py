@@ -3,6 +3,7 @@ import datetime
 from django.db.models import Q, Count, OuterRef, Subquery
 from django.shortcuts import render, redirect
 from django.urls import reverse
+from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from users.models import User
 
@@ -54,9 +55,9 @@ def create_group(request):
 @login_required
 def edit_group(request, group_id):
     group = Group.objects.filter(group_id=group_id).first()
-    group_member = GroupMember.objects.filter(group=group, user=request.user).first()
+    group_member = GroupMember.objects.filter(group=group, user=request.user, is_deleted=False).first()
     if group_member and group_member.is_admin:
-        group_members = group.groupmember_set.all()
+        group_members = group.groupmember_set.filter(is_deleted=False).all()
         schedules = group.groupschedule_set.all().order_by('schedule_time')
         if request.method == 'POST':
             if request.POST['event_date']:
@@ -110,9 +111,9 @@ def edit_group(request, group_id):
 @login_required
 def view_group(request, group_id):
     group = Group.objects.filter(group_id=group_id).first()
-    group_member = GroupMember.objects.filter(group=group, user=request.user).first()
+    group_member = GroupMember.objects.filter(group=group, user=request.user, is_deleted=False).first()
     if group_member:
-        group_members = group.groupmember_set.all()
+        group_members = group.groupmember_set.filter(is_deleted=False).all()
         schedules = group.groupschedule_set.all().order_by('schedule_time')
         return render(request, 'view_group.html', 
         {'group': group, 'is_admin': group_member.is_admin,
@@ -122,7 +123,7 @@ def view_group(request, group_id):
 @login_required
 def add_group_member(request, group_id):
     group = Group.objects.filter(group_id=group_id).first()
-    current_group_member = GroupMember.objects.filter(group=group, user=request.user).first()
+    current_group_member = GroupMember.objects.filter(group=group, user=request.user, is_deleted=False).first()
     if current_group_member and current_group_member.is_admin:
         invite_url = '{}://{}{}'.format(request.scheme, request.get_host(), group.get_invite_url())
         if request.method == 'POST':
@@ -153,22 +154,42 @@ def add_group_member(request, group_id):
 @login_required
 def edit_group_member(request, group_id, member_id):
     group = Group.objects.filter(group_id=group_id).first()
-    current_group_member = GroupMember.objects.filter(group=group, user=request.user).first()
+    current_group_member = GroupMember.objects.filter(group=group, user=request.user, is_deleted=False).first()
     if current_group_member and current_group_member.is_admin:
-        member = GroupMember.objects.filter(group=group, id=member_id).first()
+        member = GroupMember.objects.filter(
+            group=group,
+            member_id=member_id,
+            is_deleted=False).first()
         if member:
             if request.method == 'POST':
-                if member:
-                    member.is_admin = request.POST['is_admin'] == 'on'
-                    member.save()
-                    return redirect('edit_group', group.group_id)
-            return render(request, 'edit_member.html', {'member':member})
+                member.is_admin = request.POST['is_admin'] == 'on'
+                member.save()
+                return redirect('edit_group', group.group_id)
+            return render(request, 'edit_member.html', {'member':member, 'group': group})
+    return redirect('dashboard')
+
+@login_required
+@require_http_methods(['POST'])
+def remove_group_member(request, group_id, member_id):
+    if request.method == 'POST':
+        group = Group.objects.filter(group_id=group_id).first()
+        current_group_member = GroupMember.objects.filter(group=group, user=request.user, is_deleted=False).first()
+        if current_group_member and current_group_member.is_admin:
+            member = GroupMember.objects.filter(
+                group=group,
+                member_id=member_id,
+                is_deleted=False
+            ).first()
+            if member:
+                member.is_deleted = True
+                member.save()
+                return redirect('edit_group', group.group_id)
     return redirect('dashboard')
 
 @login_required
 def send_message(request, group_id):
     group = Group.objects.filter(group_id=group_id).first()
-    current_group_member = GroupMember.objects.filter(group=group, user=request.user).first()
+    current_group_member = GroupMember.objects.filter(group=group, user=request.user, is_deleted=False).first()
     if current_group_member:
         if request.method == 'POST':
             message_type = 'AM' if current_group_member.is_admin else 'MA'
@@ -182,7 +203,8 @@ def send_message(request, group_id):
             message.save()
             message_receivers = GroupMember.objects.filter(
                 group=group,
-                is_admin=message_type=='MA'
+                is_admin=message_type=='MA',
+                is_deleted=False
             )
             message_url = '{}://{}{}'.format(
                 request.scheme,
@@ -202,7 +224,7 @@ def send_message(request, group_id):
 @login_required
 def invite(request, group_id):
     group = Group.objects.filter(group_id=group_id).first()
-    current_group_member = GroupMember.objects.filter(group=group, user=request.user).first()
+    current_group_member = GroupMember.objects.filter(group=group, user=request.user, is_deleted=False).first()
     if group and not current_group_member:
         if request.method == 'POST':
             new_group_member = GroupMember(
@@ -218,7 +240,7 @@ def invite(request, group_id):
 @login_required
 def inbox(request, group_id):
     group = Group.objects.filter(group_id=group_id).first()
-    current_group_member = GroupMember.objects.filter(group=group, user=request.user).first()
+    current_group_member = GroupMember.objects.filter(group=group, user=request.user, is_deleted=False).first()
     if current_group_member:
         if current_group_member.is_admin:
             sent_messages = GroupMessage.objects.filter(
@@ -251,7 +273,7 @@ def inbox(request, group_id):
 @login_required
 def conversations(request, group_id):
     group = Group.objects.filter(group_id=group_id).first()
-    current_group_member = GroupMember.objects.filter(group=group, user=request.user).first()
+    current_group_member = GroupMember.objects.filter(group=group, user=request.user, is_deleted=False).first()
     if current_group_member:
         if current_group_member.is_admin:
             sent_messages = GroupMessage.objects.filter(
@@ -319,7 +341,7 @@ def conversations(request, group_id):
 @login_required
 def message_details(request, group_id, message_id):
     group = Group.objects.filter(group_id=group_id).first()
-    current_group_member = GroupMember.objects.filter(group=group, user=request.user).first()
+    current_group_member = GroupMember.objects.filter(group=group, user=request.user, is_deleted=False).first()
     if current_group_member:
         if request.method == 'POST':
             message_type = 'AM' if current_group_member.is_admin else 'MA'
@@ -363,7 +385,7 @@ def message_details(request, group_id, message_id):
 @login_required
 def conversation_details(request, group_id, message_id):
     group = Group.objects.filter(group_id=group_id).first()
-    current_group_member = GroupMember.objects.filter(group=group, user=request.user).first()
+    current_group_member = GroupMember.objects.filter(group=group, user=request.user, is_deleted=False).first()
     if current_group_member:
         if request.method == 'POST':
             message_type = 'AM' if current_group_member.is_admin else 'MA'

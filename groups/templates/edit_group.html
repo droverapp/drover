@@ -45,7 +45,7 @@
       <h3>Members</h3>
       <ul class="member-list">
         {% for member in group_members %}
-        <a href="{% url 'edit_group_member' group_id=group.group_id member_id=member.id %}">
+        <a href="{% url 'edit_group_member' group_id=group.group_id member_id=member.member_id %}">
           <li class="d-flex justify-content-between">
             <span>{{ member.user }}</span>
             {% if member.is_admin %}
