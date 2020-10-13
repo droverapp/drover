@@ -9,31 +9,31 @@
     <form class="form-container" method="post">
       {% csrf_token %}
       <div class="form-group">
-        <label for="name">Enter Group Name</label>
-        <input class="form-control" name="name" id="name" placeholder="Group Name" />
+        <label for="name">Please enter a name for your group:</label>
+        <input class="form-control" name="name" id="name" placeholder="Barnaby Family Reunion 2020" />
       </div>
       <div class="form-group">
-        <label for="description">Enter Group Description</label>
+        <label for="description">and a brief description:</label>
         <textarea class="form-control" name="description" id="description" placeholder="Group Description"></textarea>
       </div>
       <div class="form-group">
-        <label for="venue">Enter Venue</label>
-        <input class="form-control" name="venue" id="venue" placeholder="Venue"
+        <label for="venue">What's your group's location?</label>
+        <input class="form-control" name="venue" id="venue" placeholder="You don't need specifics yet! City/state will be just fine."
         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"/>
         <div class="dropdown-menu location-results" aria-labelledby="dropdownMenuLink">
         </div>
       </div>
       <div class="form-group">
-        <label for="event_date">Enter Event Date</label>
+        <label for="event_date">What is your event's start date?</label>
         <div style="position: relative;">
           <input class="form-control" name="event_date" id="event_date" placeholder="Event Date (YYYY-MM-DD)" />
         </div>
       </div>
       <div class="schedule-form-container">
-        <h2>Add Schedules</h2>
+        <h2>Add Events</h2>
         <div id="schedule-view-container"></div>
         <div style="text-align: center;">
-          <button class="btn btn-secondary" data-toggle="modal" data-target="#schedule-form-modal" type="button">Add Schedule</button>
+          <button class="btn btn-secondary" data-toggle="modal" data-target="#schedule-form-modal" type="button">Add a New Event</button>
         </div>
       </div>
       <div style="text-align: center;">

@@ -2,7 +2,7 @@
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Schedule Form</h5>
+        <h5 class="modal-title">Create a New Event</h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -10,10 +10,10 @@
       <div class="modal-body">
         <input type="hidden" id="schedule_id" value="0"/>
         <div class="form-group">
-          <input class="form-control" id="schedule_name" placeholder="Schedule Name" />
+          <input class="form-control" id="schedule_name" placeholder="Event Name" />
         </div>
         <div class="form-group">
-          <input class="form-control schedule_datetimepicker" id="schedule_time" placeholder="Schedule Date" />
+          <input class="form-control schedule_datetimepicker" id="schedule_time" placeholder="Event Date and Time" />
         </div>
         <div class="form-group">
           <input class="form-control" id="schedule_venue_name" placeholder="Venue Name, e.g. Mom's Place"/>
@@ -25,15 +25,15 @@
           </div>
         </div>
         <div class="form-group">
-          <input class="form-control" id="schedule_venue_map" placeholder="Map Link" />
+          <input class="form-control" id="schedule_venue_map" placeholder="Map Link - will be filled in automatically or paste in your own" />
         </div>
         <div class="form-group">
           <input class="form-control" id="schedule_instructions" placeholder="Any other notes/instructions" />
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        <button type="button" id="save-schedule" class="btn btn-primary">Add Schedule</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" id="save-schedule" class="btn btn-primary">Add Event</button>
       </div>
     </div>
   </div>
