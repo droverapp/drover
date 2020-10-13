@@ -2498,7 +2498,7 @@
             selectTime: 'Select Time'
         },
         useStrict: false,
-        sideBySide: false,
+        sideBySide: true,
         daysOfWeekDisabled: false,
         calendarWeeks: false,
         viewMode: 'days',

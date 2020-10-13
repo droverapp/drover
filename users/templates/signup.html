@@ -10,14 +10,14 @@
           {{ field.placeholder }}<br>
           {{ field }}
           {% if field.name == 'contact_number' %}
-            <p class="small">
-              It is suggested to avoid using Google Voice and other similar service numbers
-              for the best experiences.
-            </p>
+            <small>
+              <em>Make sure to start your number with '+1' for the United States. For example, 234-555-5678 would be input as +12345555678</em>
+              Please note Drover does not work with Google Voice at this time.
+            </small>
           {% endif %}
           {% if field.name == 'password1' %}
             <p class="small">
-              Password must be minimum 8 characters and contain atleast one number
+              Password must be minimum 8 characters and contain at least one number
               and one character (@_!#$%^&*()<>?/\|}{~:)
             </p>
           {% endif %}
