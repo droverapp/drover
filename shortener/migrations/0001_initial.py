@@ -7,16 +7,26 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='ShortURL',
+            name="ShortURL",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('shortened_id', models.CharField(editable=False, max_length=8, unique=True)),
-                ('path', models.CharField(editable=False, max_length=100)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "shortened_id",
+                    models.CharField(editable=False, max_length=8, unique=True),
+                ),
+                ("path", models.CharField(editable=False, max_length=100)),
             ],
         ),
     ]

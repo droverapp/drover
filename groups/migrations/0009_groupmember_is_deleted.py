@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('groups', '0008_remove_uuid_null'),
+        ("groups", "0008_remove_uuid_null"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='groupmember',
-            name='is_deleted',
+            model_name="groupmember",
+            name="is_deleted",
             field=models.BooleanField(default=False),
         ),
     ]

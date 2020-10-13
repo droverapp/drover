@@ -8,7 +8,12 @@
       {% for message in sent_messages %}
         <a class="message-details-link" href="{% url 'conversation_details' group.group_id message.message_id %}">
           <div class="message">
-            <b>From: {{ message.sender }}</b>
+            <b>From: {% if message.sender.name %}
+                  {{ message.sender.name }}
+                {% else %}
+                  {{ message.sender.email }}
+                {% endif %}
+            </b>
             <p>{{ message.message }} 
               {% if message.conversation_count %}
               <span class="conversation_count">+{{ message.conversation_count }}</span>
@@ -24,7 +29,12 @@
       {% for message in received_messages %}
         <a class="message-details-link" href="{% url 'conversation_details' group.group_id message.message_id %}">
           <div class="message">
-            <b>From: {{ message.sender }}</b>
+            <b>From: {% if message.sender.name %}
+                  {{ message.sender.name }}
+                {% else %}
+                  {{ message.sender.email }}
+                {% endif %}
+            </b>
             <p>{{ message.message }}  
               {% if message.conversation_count %}
               <span class="conversation_count">+{{ message.conversation_count }}</span>

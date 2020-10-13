@@ -3,16 +3,18 @@
 from django.db import migrations
 import uuid
 
+
 def gen_uuid(apps, schema_editor):
-    GroupMember = apps.get_model('groups', 'GroupMember')
+    GroupMember = apps.get_model("groups", "GroupMember")
     for row in GroupMember.objects.all():
         row.member_id = uuid.uuid4()
-        row.save(update_fields=['member_id'])
+        row.save(update_fields=["member_id"])
+
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('groups', '0006_groupmember_member_id'),
+        ("groups", "0006_groupmember_member_id"),
     ]
 
     operations = [

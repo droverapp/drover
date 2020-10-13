@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('groups', '0003_auto_20191218_1122'),
+        ("groups", "0003_auto_20191218_1122"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='group',
-            name='event_date',
+            model_name="group",
+            name="event_date",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AlterField(
-            model_name='group',
-            name='venue',
+            model_name="group",
+            name="venue",
             field=models.CharField(blank=True, max_length=255, null=True),
         ),
     ]

@@ -7,13 +7,13 @@ import uuid
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('groups', '0005_auto_20191222_1237'),
+        ("groups", "0005_auto_20191222_1237"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='groupmember',
-            name='member_id',
+            model_name="groupmember",
+            name="member_id",
             field=models.UUIDField(default=uuid.uuid4, editable=False, null=True),
         ),
     ]

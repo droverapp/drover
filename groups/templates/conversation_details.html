@@ -5,13 +5,21 @@
   <div class="container" style="min-height: calc(100vh - 11.075rem);">
     <div class="message-detail">
       <p>{{ message.message }}</p>
-      <small>From: {{ message.sender }}</small>
+      <small>From: {% if message.sender.name %}
+        {{ message.sender.name }}
+      {% else %}
+        {{ message.sender.email }}
+      {% endif %}</small>
       <small>Sent {{ message.message_time }}</small>
     </div>
     {% for conversation in conversations %}
       <div class="message-detail">
         <p>{{ conversation.message }}</p>
-        <small>From: {{ conversation.sender }}</small>
+        <small>From: {% if conversation.sender.name %}
+          {{ conversation.sender.name }}
+        {% else %}
+          {{ conversation.sender.email }}
+        {% endif %}/small>
         <small>Sent {{ conversation.message_time }}</small>
       </div>
     {% endfor %}

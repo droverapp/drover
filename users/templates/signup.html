@@ -10,10 +10,16 @@
           {{ field.placeholder }}<br>
           {{ field }}
           {% if field.name == 'contact_number' %}
-            <small>
+            <p class="small">
               It is suggested to avoid using Google Voice and other similar service numbers
               for the best experiences.
-            </small>
+            </p>
+          {% endif %}
+          {% if field.name == 'password1' %}
+            <p class="small">
+              Password must be minimum 8 characters and contain atleast one number
+              and one character (@_!#$%^&*()<>?/\|}{~:)
+            </p>
           {% endif %}
           <!-- {% if field.help_text %}
             <small style="color: grey">{{ field.help_text }}</small>

@@ -10,50 +10,117 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Group',
+            name="Group",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('group_id', models.UUIDField(default=uuid.uuid4, editable=False, unique=True)),
-                ('name', models.CharField(max_length=120)),
-                ('event_date', models.DateTimeField()),
-                ('venue', models.CharField(max_length=255)),
-                ('description', models.TextField(blank=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "group_id",
+                    models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+                ),
+                ("name", models.CharField(max_length=120)),
+                ("event_date", models.DateTimeField()),
+                ("venue", models.CharField(max_length=255)),
+                ("description", models.TextField(blank=True)),
             ],
         ),
         migrations.CreateModel(
-            name='GroupMember',
+            name="GroupMember",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('is_admin', models.BooleanField(default=False)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("is_admin", models.BooleanField(default=False)),
             ],
         ),
         migrations.CreateModel(
-            name='GroupSchedule',
+            name="GroupSchedule",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255)),
-                ('schedule_time', models.DateTimeField()),
-                ('instructions', models.TextField(blank=True)),
-                ('venue_name', models.CharField(max_length=255)),
-                ('venue_address', models.TextField(blank=True)),
-                ('venue_map_link', models.CharField(max_length=255)),
-                ('group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='groups.Group')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("schedule_time", models.DateTimeField()),
+                ("instructions", models.TextField(blank=True)),
+                ("venue_name", models.CharField(max_length=255)),
+                ("venue_address", models.TextField(blank=True)),
+                ("venue_map_link", models.CharField(max_length=255)),
+                (
+                    "group",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="groups.Group"
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='GroupMessage',
+            name="GroupMessage",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('message', models.TextField()),
-                ('message_time', models.DateTimeField(blank=True, default=datetime.datetime.now, null=True)),
-                ('status', models.CharField(choices=[('P', 'Pending'), ('S', 'Successfully Sent'), ('F', 'Sending Failed')], default='P', max_length=1)),
-                ('message_type', models.CharField(choices=[('AM', 'Admin to Members'), ('MA', 'Member to Admin')], default='AM', max_length=2)),
-                ('group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='groups.Group')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("message", models.TextField()),
+                (
+                    "message_time",
+                    models.DateTimeField(
+                        blank=True, default=datetime.datetime.now, null=True
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("P", "Pending"),
+                            ("S", "Successfully Sent"),
+                            ("F", "Sending Failed"),
+                        ],
+                        default="P",
+                        max_length=1,
+                    ),
+                ),
+                (
+                    "message_type",
+                    models.CharField(
+                        choices=[("AM", "Admin to Members"), ("MA", "Member to Admin")],
+                        default="AM",
+                        max_length=2,
+                    ),
+                ),
+                (
+                    "group",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="groups.Group"
+                    ),
+                ),
             ],
         ),
     ]

@@ -8,7 +8,11 @@
   {% endif %}
   {% if title %}
   <div class="center header-title">
+    {% if title.name %}
+    {{ title.name }}
+    {% else %}
     {{ title }}
+    {% endif %}
   </div>
   {% endif %}
   {% if nav_menu %}

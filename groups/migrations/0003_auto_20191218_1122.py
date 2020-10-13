@@ -7,18 +7,18 @@ import uuid
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('groups', '0002_auto_20191213_0829'),
+        ("groups", "0002_auto_20191213_0829"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='groupmessage',
-            name='message_id',
+            model_name="groupmessage",
+            name="message_id",
             field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
         ),
         migrations.AddField(
-            model_name='groupmessage',
-            name='reply_to',
+            model_name="groupmessage",
+            name="reply_to",
             field=models.UUIDField(blank=True, null=True),
         ),
     ]

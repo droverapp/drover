@@ -7,13 +7,13 @@ import uuid
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('groups', '0007_populate_uuid_values_groupmember'),
+        ("groups", "0007_populate_uuid_values_groupmember"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='groupmember',
-            name='member_id',
+            model_name="groupmember",
+            name="member_id",
             field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
         ),
     ]
