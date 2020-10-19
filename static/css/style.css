@@ -142,6 +142,9 @@ a.btn-primary.btn-orange:hover {
 .group-container {
   margin-bottom: 1.5rem;
 }
+.group-image {
+  max-width: 100%;
+}
 
 .schedule-form-container {
   margin-bottom: 3rem;

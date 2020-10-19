@@ -1,15 +1,18 @@
 # DON'T FORGET TO MAKE SURE THIS IS SYNCED UP WITH environment.yml
 astroid==2.3.2
+bleach
 certifi==2019.9.11
 chardet==3.0.4
 Django==2.2.6
 django-environ==0.4.5
+django-ckeditor
 django-sendgrid-v5==0.8.0
 future==0.18.2
 idna==2.8
 isort==4.3.21
 lazy-object-proxy==1.4.3
 mccabe==0.6.1
+pillow
 psycopg2==2.8.4
 PyJWT==1.7.1
 pylint==2.4.3

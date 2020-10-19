@@ -1,4 +1,5 @@
 import datetime
+import bleach
 
 from django.db.models import Q, Count, OuterRef, Subquery
 from django.shortcuts import render, redirect
@@ -26,7 +27,8 @@ def create_group(request):
         group = Group(
             name=request.POST["name"],
             event_date=event_date,
-            description=request.POST["description"],
+            description=bleach.clean(request.POST["description"], tags=["p", "strong", "i", "u", "b", "em", "a"]),
+            image=request.FILES["group_image"],
             venue=request.POST["venue"],
             owner=request.user,
         )
@@ -66,7 +68,8 @@ def edit_group(request, group_id):
                 group.event_date = datetime.datetime.strptime(
                     request.POST["event_date"], "%m/%d/%Y %I:%M %p"
                 ).strftime("%Y-%m-%d %H:%M")
-            group.description = request.POST["description"]
+            group.image = request.FILES["group_image"]
+            group.description = bleach.clean(request.POST["description"], tags=["p", "strong", "i", "u", "b", "em", "a"])
             group.venue = request.POST["venue"]
             group.save()
 

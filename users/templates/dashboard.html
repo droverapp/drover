@@ -21,7 +21,7 @@
               <div class="card-subtitle mb-2 text-muted">{{ group.event_date|date:"F j Y" }}</div>
               {% endif %}
               <p class="card-text">
-                {{ group.description }}
+                {{ group.description|safe }}
                 <div class="group-invite">Invite Link: 
                   {{ request.scheme }}://{{ request.get_host }}{{ group.get_invite_url }}</div>
               </p>

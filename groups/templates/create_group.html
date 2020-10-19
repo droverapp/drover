@@ -6,7 +6,7 @@
 {% block content %}
   {% include 'header.html' with title="Create Group" nav_menu=True %}
   <div class="container">
-    <form class="form-container" method="post">
+    <form class="form-container" method="post"  enctype="multipart/form-data">
       {% csrf_token %}
       <div class="form-group">
         <label for="name">Please enter a name for your group:</label>
@@ -14,7 +14,26 @@
       </div>
       <div class="form-group">
         <label for="description">and a brief description:</label>
-        <textarea class="form-control" name="description" id="description" placeholder="Group Description"></textarea>
+        <script type="text/javascript" src="{% static "ckeditor/ckeditor-init.js" %}"></script>
+        <script type="text/javascript" src="{% static "ckeditor/ckeditor/ckeditor.js" %}"></script>
+        <!-- <textarea class="form-control" name="description" id="id_description" placeholder="Group Description"></textarea> -->
+        <div class="django-ckeditor-widget" data-field-id="id_description" style="display: inline-block;">
+          <textarea id="id_description" name="description" 
+            data-processed="0" 
+            data-config="{&quot;skin&quot;: &quot;moono-lisa&quot;, 
+              &quot;toolbar_Custom&quot;: [[&quot;Bold&quot;, &quot;Italic&quot;, &quot;Underline&quot;], [&quot;Link&quot;, &quot;Unlink&quot;]],
+              &quot;toolbar&quot;: &quot;Custom&quot;,
+              &quot;height&quot;: 300, &quot;width&quot;: 300,
+              &quot;filebrowserWindowWidth&quot;: 300, &quot;filebrowserWindowHeight&quot;: 300,
+              &quot;language&quot;: &quot;en-us&quot;}"
+            data-external-plugin-resources="[]"
+            data-id="id_description"
+            data-type="ckeditortype"></textarea>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Upload an image for the group:</label>
+        <input type="file" name="group_image" />
       </div>
       <div class="form-group">
         <label for="venue">What's your group's location?</label>

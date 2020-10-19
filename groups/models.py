@@ -3,13 +3,16 @@ from django.db import models
 from django.conf import settings
 from datetime import datetime
 
+from ckeditor.fields import RichTextField
+
 
 class Group(models.Model):
     group_id = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=120)
     event_date = models.DateTimeField(blank=True, null=True)
     venue = models.CharField(max_length=255, blank=True, null=True)
-    description = models.TextField(blank=True)
+    description = RichTextField(blank=True)
+    image = models.ImageField(upload_to="images/", null=True)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     def __str__(self):
