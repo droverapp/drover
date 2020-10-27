@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
   {% include 'header.html' with title="Write Message" nav_menu=True %}
@@ -8,9 +9,10 @@
       <div class="form-group">
         <label for="message">
             Compose Message To {% if is_admin %}Your Group {% else %}Group Admins {% endif %}
-        </label>
+        </label><br />
         <div class="glyphicon glyphicon-picture message-image-container" title="upload image for the conversation">
           <input type="file" name="message-image" />
+          <img src="" role="presentation" id="uploaded-image" />
         </div>
         <textarea class="form-control" name="message" id="message" rows="10"></textarea>
       </div>
