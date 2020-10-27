@@ -142,9 +142,23 @@ a.btn-primary.btn-orange:hover {
 .group-container {
   margin-bottom: 1.5rem;
 }
-.group-image {
+.group-image,
+.conversation-images {
   max-width: 100%;
 }
+
+.message-image-container {
+  font-size: 2em;
+}
+
+.message-image-container:before {
+  position: absolute;
+}
+
+.message-image-container input {
+  opacity: 0;
+}
+
 
 .schedule-form-container {
   margin-bottom: 3rem;

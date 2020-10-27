@@ -11,10 +11,15 @@
             <b>From: {% if message.sender.name %}
                   {{ message.sender.name }}
                 {% else %}
-                  {{ message.sender.email }}
+                  {{ message.sender.username }}
                 {% endif %}
             </b>
-            <p>{{ message.message }} 
+            <p>
+
+              {% if message.message_images.count %}
+                <span class="glyphicon glyphicon-picture"></span>
+              {% endif %}
+              {{ message.message }} 
               {% if message.conversation_count %}
               <span class="conversation_count">+{{ message.conversation_count }}</span>
               {% endif %}
@@ -32,10 +37,15 @@
             <b>From: {% if message.sender.name %}
                   {{ message.sender.name }}
                 {% else %}
-                  {{ message.sender.email }}
+                  {{ message.sender.username }}
                 {% endif %}
             </b>
-            <p>{{ message.message }}  
+            <p>
+
+              {% if message.message_images.count %}
+                <span class="glyphicon glyphicon-picture"></span>
+              {% endif %}
+              {{ message.message }}  
               {% if message.conversation_count %}
               <span class="conversation_count">+{{ message.conversation_count }}</span>
               {% endif %}

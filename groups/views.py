@@ -8,7 +8,7 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from users.models import User
 
-from .models import Group, GroupMember, GroupSchedule, GroupMessage
+from .models import Group, GroupMember, GroupSchedule, GroupMessage, GroupMessageImage
 from .emails import send_invitation_email
 from .sms import send_text_message
 from shortener.utils import generate_short_url
@@ -246,6 +246,16 @@ def send_message(request, group_id):
                 message_type=message_type,
             )
             message.save()
+
+            print(request.FILES)
+            if request.FILES.get("message-image", ""):
+                print("I am there")
+                message_image = GroupMessageImage(
+                    group_message=message,
+                    image=request.FILES["message-image"]
+                )
+                message_image.save()
+            
             message_receivers = GroupMember.objects.filter(
                 group=group, is_admin=message_type == "MA", is_deleted=False
             )
@@ -254,7 +264,7 @@ def send_message(request, group_id):
                 request.get_host(),
                 generate_short_url(
                     reverse(
-                        "message_details",
+                        "conversation_details",
                         kwargs={
                             "group_id": group.group_id,
                             "message_id": message.message_id,
@@ -504,7 +514,7 @@ def conversation_details(request, group_id, message_id):
                 request.get_host(),
                 generate_short_url(
                     reverse(
-                        "message_details",
+                        "conversation_details",
                         kwargs={
                             "group_id": group.group_id,
                             "message_id": message.message_id,

@@ -4,7 +4,9 @@
   {% include 'header.html' with title="Details" nav_menu=True group_id=group.group_id page='view' %}
   <div class="container" style="min-height: calc(100vh - 14.7rem);">
     <h4 class="group-title">{{ group.name }}</h4>
+    {% if group.image %}
     <img src="{{ group.image.url }}" class="group-image" />
+    {% endif %}
     <p class="group-description">
       {{ group.description|safe }}
     </p>

@@ -3,12 +3,15 @@
 {% block content %}
   {% include 'header.html' with title="Write Message" nav_menu=True %}
   <div class="container">
-    <form class="form-container" method="post">
+    <form class="form-container" method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <div class="form-group">
         <label for="message">
             Compose Message To {% if is_admin %}Your Group {% else %}Group Admins {% endif %}
         </label>
+        <div class="glyphicon glyphicon-picture message-image-container" title="upload image for the conversation">
+          <input type="file" name="message-image" />
+        </div>
         <textarea class="form-control" name="message" id="message" rows="10"></textarea>
       </div>
       <div style="text-align: center;">
@@ -17,4 +20,7 @@
     </form>
   </div>
   {% include 'footer.html' with show_logo=True %}
+{% endblock %}
+{% block page_js %}
+<script src="{% static 'js/preview_image.js' %}"></script>
 {% endblock %}

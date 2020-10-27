@@ -70,3 +70,11 @@ class GroupMessage(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
     status = models.CharField(max_length=1, choices=STATUSES, default="P")
     message_type = models.CharField(max_length=2, choices=TYPES, default="AM")
+
+    @property
+    def message_images(self):
+        return self.groupmessageimage_set.all()
+
+class GroupMessageImage(models.Model):
+    image = models.ImageField(upload_to="images/", null=True)
+    group_message = models.ForeignKey(GroupMessage, on_delete=models.CASCADE)

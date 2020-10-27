@@ -4,11 +4,16 @@
   {% include 'header.html' with title=message.sender nav_menu=True group_id=group.group_id %}
   <div class="container" style="min-height: calc(100vh - 11.075rem);">
     <div class="message-detail">
+      {% if message.message_images.count %}
+      {% for message_image in message.message_images %}
+        <img src="{{ message_image.image.url }}" class="conversation-images"/>
+      {% endfor %}
+      {% endif %}
       <p>{{ message.message }}</p>
       <small>From: {% if message.sender.name %}
         {{ message.sender.name }}
       {% else %}
-        {{ message.sender.email }}
+        {{ message.sender.username }}
       {% endif %}</small>
       <small>Sent {{ message.message_time }}</small>
     </div>
@@ -18,8 +23,8 @@
         <small>From: {% if conversation.sender.name %}
           {{ conversation.sender.name }}
         {% else %}
-          {{ conversation.sender.email }}
-        {% endif %}/small>
+          {{ conversation.sender.username }}
+        {% endif %}</small>
         <small>Sent {{ conversation.message_time }}</small>
       </div>
     {% endfor %}

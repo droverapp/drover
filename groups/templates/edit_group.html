@@ -29,8 +29,12 @@
         </div>
       </div>
       <div class="form-group">
+        {% if group.image %}
         <img src="{{ group.image.url }}" class="group-image" />
         <label>Change image for the group:</label>
+        {% else %}
+        <label>Upload image for the group:</label>
+        {% endif %}
         <input type="file" name="group_image" />
       </div>
       <div class="form-group">

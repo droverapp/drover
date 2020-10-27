@@ -11,10 +11,15 @@
             <b>From: {% if message.sender.name %}
                   {{ message.sender.name }}
                 {% else %}
-                  {{ message.sender.email }}
+                  {{ message.sender.username }}
                 {% endif %}
             </b>
-            <p>{{ message.message }}</p>
+            <p>
+
+              {% if message.message_images.count %}
+                <span class="glyphicon glyphicon-picture"></span>
+              {% endif %}
+              {{ message.message }}</p>
             <small>Sent {{ message.message_time }}</small>
           </div>
         </a>
@@ -28,10 +33,15 @@
             <b>From: {% if message.sender.name %}
                   {{ message.sender.name }}
                 {% else %}
-                  {{ message.sender.email }}
+                  {{ message.sender.username }}
                 {% endif %}
             </b>
-            <p>{{ message.message }}</p>
+            <p>
+
+              {% if message.message_images.count %}
+                <span class="glyphicon glyphicon-picture"></span>
+              {% endif %}
+              {{ message.message }}</p>
             <small>Sent {{ message.message_time }}</small>
           </div>
         </a>
