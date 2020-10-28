@@ -23,7 +23,9 @@
               <p class="card-text">
                 {{ group.group.description|safe }}
                 <div class="group-invite">Invite Link: 
-                  {{ request.scheme }}://{{ request.get_host }}{{ group.group.get_invite_url }}</div>
+                  <a href="{{ request.scheme }}://{{ request.get_host }}{{ group.group.get_invite_url }}">
+                    {{ request.scheme }}://{{ request.get_host }}{{ group.group.get_invite_url }}
+                  </a></div>
               </p>
               <div class="group-actions">
                 <a href="{% url 'view_group' group.group.group_id %}" class="card-link">View</a>

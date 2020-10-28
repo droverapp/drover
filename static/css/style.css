@@ -139,6 +139,12 @@ a.btn-primary.btn-orange:hover {
   color: #2a1e5c;
 }
 
+a.member-link {
+  display: block;
+  text-align: center;
+  margin-top: 1rem;
+}
+
 .group-container {
   margin-bottom: 1.5rem;
 }
