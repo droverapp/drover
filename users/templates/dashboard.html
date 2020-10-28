@@ -16,19 +16,19 @@
         {% for group in owned_groups %}
           <div class="group-container card">
             <div class="card-body">
-              <div class="card-title">{{ group.name }}</div>
-              {% if group.event_date %}
-              <div class="card-subtitle mb-2 text-muted">{{ group.event_date|date:"F j Y" }}</div>
+              <div class="card-title">{{ group.group.name }}</div>
+              {% if group.group.event_date %}
+              <div class="card-subtitle mb-2 text-muted">{{ group.group.event_date|date:"F j Y" }}</div>
               {% endif %}
               <p class="card-text">
-                {{ group.description|safe }}
+                {{ group.group.description|safe }}
                 <div class="group-invite">Invite Link: 
-                  {{ request.scheme }}://{{ request.get_host }}{{ group.get_invite_url }}</div>
+                  {{ request.scheme }}://{{ request.get_host }}{{ group.group.get_invite_url }}</div>
               </p>
               <div class="group-actions">
-                <a href="{% url 'view_group' group.group_id %}" class="card-link">View</a>
-                <a href="{% url 'edit_group' group.group_id %}" class="card-link">Edit</a>
-                <a href="{% url 'add_group_member' group.group_id %}" class="card-link">Add Members</a>
+                <a href="{% url 'view_group' group.group.group_id %}" class="card-link">View</a>
+                <a href="{% url 'edit_group' group.group.group_id %}" class="card-link">Edit</a>
+                <a href="{% url 'add_group_member' group.group.group_id %}" class="card-link">Add Members</a>
               </div>
             </div>
           </div>

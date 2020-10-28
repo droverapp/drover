@@ -1,5 +1,6 @@
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.shortcuts import render, redirect
 from .forms import SignUpForm
 from groups.models import Group, GroupMember
@@ -44,11 +45,17 @@ def logout_view(request):
 
 @login_required
 def dashboard(request):
-    owned_groups = Group.objects.filter(owner=request.user)
+    owned_groups = (
+        GroupMember.objects.select_related("group")
+        .filter(
+            Q(group__owner=request.user)|Q(user=request.user)
+        ).filter(is_deleted=False, is_admin=True)
+    )
     member_groups = (
         GroupMember.objects.select_related("group")
-        .filter(user=request.user)
+        .filter(user=request.user, is_deleted=False)
         .exclude(group__owner=request.user)
+        .exclude(is_admin=True)
     )
     return render(
         request,
