@@ -201,7 +201,7 @@ def edit_group_member(request, group_id, member_id):
         ).first()
         if member:
             if request.method == "POST":
-                member.is_admin = request.POST["is_admin"] == "on"
+                member.is_admin = request.POST.get("is_admin", None) == "on"
                 member.save()
                 return redirect("edit_group", group.group_id)
             return render(
