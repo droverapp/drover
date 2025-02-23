@@ -1,6 +1,11 @@
 .venv
 .vscode
 **/.env
+**/.direnv
+.envrc
 **/__pycache__/
 assets/
 media/
+
+# local dev DB
+db.sqlite3

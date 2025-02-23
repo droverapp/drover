@@ -1,0 +1,37 @@
+[project]
+name = "drover"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "astroid==2.3.2",
+    "bleach>=6.2.0",
+    "certifi==2019.9.11",
+    "chardet==3.0.4",
+    "django==2.2.6",
+    "django-ckeditor>=6.3.2",
+    "django-environ==0.4.5",
+    "django-richtextfield>=1.6.2",
+    "django-sendgrid-v5==0.8.0",
+    "future==0.18.2",
+    "idna==2.8",
+    "isort==4.3.21",
+    "lazy-object-proxy==1.4.3",
+    "mccabe==0.6.1",
+    "pillow>=11.1.0",
+    "psycopg[binary]>=3.2.5",
+    "pyjwt==1.7.1",
+    "pylint==2.4.3",
+    "python-http-client==3.2.1",
+    "pytz==2019.3",
+    "requests==2.22.0",
+    "sendgrid==6.1.0",
+    "six==1.12.0",
+    "sqlparse==0.3.0",
+    "twilio==6.33.1",
+    "urllib3==1.25.7",
+    "wrapt==1.11.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
