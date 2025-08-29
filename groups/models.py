@@ -51,7 +51,7 @@ class GroupMemberRSVP(models.Model):
     ]
     member = models.ForeignKey(GroupMember, on_delete=models.CASCADE)
     schedule = models.ForeignKey(GroupSchedule, on_delete=models.CASCADE)
-    attending = models.CharField(choices=STATUSES)
+    attending = models.CharField(max_length=1, choices=STATUSES)
 
 
 class GroupMessage(models.Model):
