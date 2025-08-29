@@ -43,6 +43,17 @@ class GroupSchedule(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
 
 
+class GroupMemberRSVP(models.Model):
+    STATUSES = [
+        ("Y", "Yes"),
+        ("N", "No"),
+        ("M", "Maybe")
+    ]
+    member = models.ForeignKey(GroupMember, on_delete=models.CASCADE)
+    schedule = models.ForeignKey(GroupSchedule, on_delete=models.CASCADE)
+    attending = models.CharField(choices=STATUSES)
+
+
 class GroupMessage(models.Model):
     STATUSES = [
         ("P", "Pending"),
