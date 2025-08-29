@@ -20,4 +20,5 @@ ENV TWILIO_SSID=""
 ENV TWILIO_AUTH_TOKEN=""
 RUN /app/.venv/bin/python manage.py collectstatic
 # TODO: Migrations?
-CMD /app/.venv/bin/granian --host 0.0.0.0 --port $PORT --log-level=debug --interface wsgi drover.wsgi:application
+CMD /app/.venv/bin/python manage.py migrate && \
+    /app/.venv/bin/granian --host 0.0.0.0 --port $PORT --log-level=debug --interface wsgi drover.wsgi:application
