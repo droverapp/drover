@@ -10,14 +10,14 @@ class Migration(migrations.Migration):
         ('groups', '0012_groupmessageimage'),
     ]
 
-    operations = [
-        migrations.CreateModel(
-            name='GroupMemberRSVP',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('attending', models.CharField(choices=[('Y', 'Yes'), ('N', 'No'), ('M', 'Maybe')], max_length=1)),
-                ('member', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='groups.GroupMember')),
-                ('schedule', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='groups.GroupSchedule')),
-            ],
-        ),
-    ]
+    # operations = [
+    #     migrations.CreateModel(
+    #         name='GroupMemberRSVP',
+    #         fields=[
+    #             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+    #             ('attending', models.CharField(choices=[('Y', 'Yes'), ('N', 'No'), ('M', 'Maybe')], max_length=1)),
+    #             ('member', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='groups.GroupMember')),
+    #             ('schedule', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='groups.GroupSchedule')),
+    #         ],
+    #     ),
+    # ]

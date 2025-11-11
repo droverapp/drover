@@ -22,6 +22,12 @@ class SignUpForm(UserCreationForm):
                     "placeholder": "Contact Number with country code",
                 }
             ),
+            "sms_optin": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Contact Number with country code",
+                }
+            ),
         }
 
     def __init__(self, *args, **kwargs):
