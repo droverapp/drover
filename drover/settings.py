@@ -10,7 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
-from django.conf.global_settings import CSRF_TRUSTED_ORIGINS
+from django.conf.global_settings import CSRF_TRUSTED_ORIGINS, DEFAULT_AUTO_FIELD
 
 import sys
 import os
@@ -104,6 +104,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 AUTH_USER_MODEL = "users.User"
+
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 # Django Rich Text Field settings
 CKEDITOR_CONFIGS = {
