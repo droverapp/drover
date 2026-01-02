@@ -1,9 +1,9 @@
 FROM python:3.10-slim AS build-env
 RUN mkdir -p /app
 WORKDIR /app
-RUN --mount=type=bind,source=uv.lock,target=/app/uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=/app/pyproject.toml \
-    pip install uv \
+COPY uv.lock /app/uv.lock
+COPY pyproject.toml /app/pyproject.toml
+RUN pip install uv \
     && uv sync --frozen --no-install-project
 COPY . /app
 RUN uv sync --frozen --python-preference=system
