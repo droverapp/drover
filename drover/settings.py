@@ -163,7 +163,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "assets/")
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL = "/media/"
 
-CSRF_TRUSTED_ORIGINS = ["https://*.herokuapp.com", *ALLOWED_HOSTS]
+CSRF_TRUSTED_ORIGINS = ["https://*.herokuapp.com"]
 
 LOGGING = {
     "version": 1,
