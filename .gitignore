@@ -6,6 +6,8 @@
 **/__pycache__/
 assets/
 media/
+**.log
 
-# local dev DB
+# local dev DB(s)
+**.db
 db.sqlite3
