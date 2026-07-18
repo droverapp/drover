@@ -339,11 +339,6 @@ class Migration(migrations.Migration):
             name='temp_id',
             field=models.UUIDField(default=uuid.uuid4, editable=False, null=True),
         ),
-        migrations.AddField(
-            model_name='group',
-            name='updated_at',
-            field=models.DateTimeField(auto_now=True),
-        ),
         migrations.AlterField(
             model_name='group',
             name='owner',
