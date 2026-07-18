@@ -329,10 +329,6 @@ class Migration(migrations.Migration):
                 'ordering': ['-created_at'],
             },
         ),
-        migrations.RemoveField(
-            model_name='groupmember',
-            name='member_id',
-        ),
         migrations.AddField(
             model_name='group',
             name='temp_id',
