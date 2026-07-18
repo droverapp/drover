@@ -21,13 +21,7 @@ class Migration(migrations.Migration):
             model_name='group',
             name='temp_id',
             field=models.UUIDField(default=uuid.uuid4, editable=False, null=True),
-        ),
-        
-        # Set the temp_id field for existing records
-        migrations.RunSQL(
-            "UPDATE groups_group SET temp_id = (SELECT hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(2)) || '-' || hex(randomblob(6))) WHERE temp_id IS NULL;"
-        ),
-        
+        ), 
         # Make temp_id not null
         migrations.AlterField(
             model_name='group',
