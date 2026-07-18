@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  {% include 'header.html' with title="Details" nav_menu=True group_id=group.group_id page='view' %}
+  {% include 'header.html' with title="Details" nav_menu=True group_id=group.id page='view' %}
   <div class="container" style="min-height: calc(100vh - 14.7rem);">
     <h4 class="group-title">{{ group.name }}</h4>
     {% if group.image %}
@@ -13,41 +13,43 @@
     <p>
       Invite: {{ request.scheme }}://{{ request.get_host }}{{ group.get_invite_url }}
     </p>
-    {% if schedules|length > 0 %}
-    <h5>Schedule:</h5>
-    {% for schedule in schedules %}
-      <div class="schedule">
-        <b class="schedule-title">{{ schedule.name }}</b>
-        <p>{{ schedule.schedule_time }}</p>
-        <p>{{ schedule.venue_name }}</p>
+    {% if events|length > 0 %}
+    <h5>Events:</h5>
+    {% for event in events %}
+      <div class="event">
+        <b class="event-title">{{ event.name }}</b>
+        <p>{{ event.event_time }}</p>
+        <p>{{ event.venue_name }}</p>
         <p>
-          <a href="{{ schedule.venue_map_link }}">
-            {% if schedule.venue_address %}
-            {{ schedule.venue_address }} 
+          <a href="{{ event.venue_map_link }}">
+            {% if event.venue_address %}
+            {{ event.venue_address }} 
             {% else %} 
-            {{ schedule.venue_map_link }}
+            {{ event.venue_map_link }}
             {% endif %}
           </a>
         </p>
-        {% if schedule.instructions %}
-        <p>Note: {{ schedule.instructions }}</p>
+        {% if event.instructions %}
+        <p>Note: {{ event.instructions }}</p>
         {% endif %}
-        <!-- {% if there's a schedule RSVP}
+        {% comment %}
+        {% if there's an event RSVP}
         <p>Your RSVP status: {{MEMBERS RSVP}}</p>
-        {% If admin, add list/popup/link to see RSVPs for each event} -->
+        {% If admin, add list/popup/link to see RSVPs for each event}
+        {% endcomment %}
       </div>
     {% endfor %}
     {% endif %}
   </div>
   <div class="footer_content">
     <div class="item">
-      <a href="{% url 'send_message' group.group_id %}">Message {% if is_admin %}Your Group {% else %}Group Admins {% endif %}</a>
+      <a href="{% url 'send_message' group.id %}">Message {% if is_admin %}Your Group {% else %}Group Admins {% endif %}</a>
     </div>
     <div class="item">
-      <a href="{% url 'conversations' group.group_id %}">Your Inbox</a>
+      <a href="{% url 'conversations' group.id %}">Your Inbox</a>
     </div>
     <div class="item">
-      <a href="{% url 'edit_group' group.group_id %}">Edit Group</a>
+      <a href="{% url 'edit_group' group.id %}">Edit Group</a>
     </div>
   </div>
   {% include 'footer.html' with show_logo=True %}

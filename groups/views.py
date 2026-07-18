@@ -8,7 +8,7 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from users.models import User
 
-from .models import Group, GroupMember, GroupSchedule, GroupMessage, GroupMessageImage
+from .models import Group, GroupMember, GroupEvent, GroupMessage, GroupMessageImage
 from .emails import send_invitation_email
 from .sms import send_text_message
 from shortener.utils import generate_short_url
@@ -17,38 +17,30 @@ from shortener.utils import generate_short_url
 @login_required
 def create_group(request):
     if request.method == "POST":
-        event_date = (
-            datetime.datetime.strptime(
-                request.POST["event_date"], "%m/%d/%Y %I:%M %p"
-            ).strftime("%Y-%m-%d %H:%M")
-            if request.POST["event_date"]
-            else None
-        )
         group = Group(
             name=request.POST["name"],
-            event_date=event_date,
             description=bleach.clean(request.POST["description"], tags=["p", "strong", "i", "u", "b", "em", "a"]),
             #image=request.FILES["group_image"],
             venue=request.POST["venue"],
             owner=request.user,
         )
         group.save()
-        group_member = GroupMember(user=request.user, is_admin=True, group=group)
+        group_member = GroupMember(user=request.user, is_admin=True, owner=True, group=group)
         group_member.save()
-        for index in range(len(request.POST.getlist("schedule_name[]"))):
-            schedule_time = datetime.datetime.strptime(
-                request.POST.getlist("schedule_time[]")[index], "%m/%d/%Y %I:%M %p"
+        for index in range(len(request.POST.getlist("event_name[]"))):
+            event_time = datetime.datetime.strptime(
+                request.POST.getlist("event_time[]")[index], "%m/%d/%Y %I:%M %p"
             ).strftime("%Y-%m-%d %H:%M")
-            schedule = GroupSchedule(
-                name=request.POST.getlist("schedule_name[]")[index],
-                schedule_time=schedule_time,
-                instructions=request.POST.getlist("schedule_instructions[]")[index],
-                venue_name=request.POST.getlist("schedule_venue_name[]")[index],
-                venue_address=request.POST.getlist("schedule_venue_address[]")[index],
-                venue_map_link=request.POST.getlist("schedule_venue_map[]")[index],
+            event = GroupEvent(
+                name=request.POST.getlist("event_name[]")[index],
+                event_time=event_time,
+                instructions=request.POST.getlist("event_instructions[]")[index],
+                venue_name=request.POST.getlist("event_venue_name[]")[index],
+                venue_address=request.POST.getlist("event_venue_address[]")[index],
+                venue_map_link=request.POST.getlist("event_venue_map[]")[index],
                 group=group,
             )
-            schedule.save()
+            event.save()
 
         return redirect("dashboard")
     return render(request, "create_group.html")
@@ -56,92 +48,88 @@ def create_group(request):
 
 @login_required
 def edit_group(request, group_id):
-    group = Group.objects.filter(group_id=group_id).first()
+    group = Group.objects.filter(id=group_id).first()
     group_member = GroupMember.objects.filter(
         group=group, user=request.user, is_deleted=False
     ).first()
     if group_member and group_member.is_admin:
-        group_members = group.groupmember_set.filter(is_deleted=False).all()
-        schedules = group.groupschedule_set.all().order_by("schedule_time")
+        group_members = group.members.filter(is_deleted=False).all()
+        events = group.events.all().order_by("event_time")
         if request.method == "POST":
-            if request.POST["event_date"]:
-                group.event_date = datetime.datetime.strptime(
-                    request.POST["event_date"], "%m/%d/%Y %I:%M %p"
-                ).strftime("%Y-%m-%d %H:%M")
             #group.image = request.FILES["group_image"]
             group.description = bleach.clean(request.POST["description"], tags=["p", "strong", "i", "u", "b", "em", "a"])
             group.venue = request.POST["venue"]
             group.save()
-
-            for index in range(len(request.POST.getlist("schedule_name[]"))):
-                if request.POST.getlist("schedule_time[]")[index]:
-                    schedule_time = datetime.datetime.strptime(
-                        request.POST.getlist("schedule_time[]")[index],
+ 
+            for index in range(len(request.POST.getlist("event_name[]"))):
+                if request.POST.getlist("event_time[]")[index]:
+                    event_time = datetime.datetime.strptime(
+                        request.POST.getlist("event_time[]")[index],
                         "%m/%d/%Y %I:%M %p",
                     ).strftime("%Y-%m-%d %H:%M")
-                schedule_id = int(request.POST.getlist("schedule_id[]")[index])
-                if schedule_id == 0:
-                    # new schedule
-                    schedule_time = datetime.datetime.strptime(
-                        request.POST.getlist("schedule_time[]")[index],
+                event_id = int(request.POST.getlist("event_id[]")[index])
+                if event_id == 0:
+                    # new event
+                    event_time = datetime.datetime.strptime(
+                        request.POST.getlist("event_time[]")[index],
                         "%m/%d/%Y %I:%M %p",
                     ).strftime("%Y-%m-%d %H:%M")
-                    schedule = GroupSchedule(
-                        name=request.POST.getlist("schedule_name[]")[index],
-                        schedule_time=schedule_time,
-                        instructions=request.POST.getlist("schedule_instructions[]")[
+                    event = GroupEvent(
+                        name=request.POST.getlist("event_name[]")[index],
+                        event_time=event_time,
+                        instructions=request.POST.getlist("event_instructions[]")[
                             index
                         ],
-                        venue_name=request.POST.getlist("schedule_venue_name[]")[index],
-                        venue_address=request.POST.getlist("schedule_venue_address[]")[
+                        venue_name=request.POST.getlist("event_venue_name[]")[index],
+                        venue_address=request.POST.getlist("event_venue_address[]")[
                             index
                         ],
-                        venue_map_link=request.POST.getlist("schedule_venue_map[]")[
+                        venue_map_link=request.POST.getlist("event_venue_map[]")[
                             index
                         ],
                         group=group,
                     )
-                    schedule.save()
+                    event.save()
                 else:
-                    # old schedule
-                    schedule = GroupSchedule.objects.filter(id=schedule_id).first()
-                    if schedule:
-                        schedule.name = request.POST.getlist("schedule_name[]")[index]
-                        schedule.schedule_time = schedule_time
-                        schedule.instructions = request.POST.getlist(
-                            "schedule_instructions[]"
+                    # old event
+                    event = GroupEvent.objects.filter(id=event_id).first()
+                    if event:
+                        event.name = request.POST.getlist("event_name[]")[index]
+                        event.event_time = event_time
+                        event.instructions = request.POST.getlist(
+                            "event_instructions[]"
                         )[index]
-                        schedule.venue_name = request.POST.getlist(
-                            "schedule_venue_name[]"
+                        event.venue_name = request.POST.getlist(
+                            "event_venue_name[]"
                         )[index]
-                        schedule.venue_address = request.POST.getlist(
-                            "schedule_venue_address[]"
+                        event.venue_address = request.POST.getlist(
+                            "event_venue_address[]"
                         )[index]
-                        schedule.venue_map_link = request.POST.getlist(
-                            "schedule_venue_map[]"
+                        event.venue_map_link = request.POST.getlist(
+                            "event_venue_map[]"
                         )[index]
-                        schedule.save()
-
-            # Edit Old Schedules if changed
-
-            return redirect("view_group", group.group_id)
+                        event.save()
+ 
+            # Edit Old Events if changed
+ 
+            return redirect("view_group", group.id)
         return render(
             request,
             "edit_group.html",
-            {"group": group, "group_members": group_members, "schedules": schedules},
+            {"group": group, "group_members": group_members, "events": events},
         )
     return redirect("dashboard")
 
 
 @login_required
 def view_group(request, group_id):
-    group = Group.objects.filter(group_id=group_id).first()
+    group = Group.objects.filter(id=group_id).first()
     group_member = GroupMember.objects.filter(
         group=group, user=request.user, is_deleted=False
     ).first()
     if group_member:
-        group_members = group.groupmember_set.filter(is_deleted=False).all()
-        schedules = group.groupschedule_set.all().order_by("schedule_time")
+        group_members = group.members.filter(is_deleted=False).all()
+        events = group.events.all().order_by("event_time")
         return render(
             request,
             "view_group.html",
@@ -149,7 +137,7 @@ def view_group(request, group_id):
                 "group": group,
                 "is_admin": group_member.is_admin,
                 "group_members": group_members,
-                "schedules": schedules,
+                "events": events,
             },
         )
     return redirect("dashboard")
@@ -157,7 +145,7 @@ def view_group(request, group_id):
 
 @login_required
 def add_group_member(request, group_id):
-    group = Group.objects.filter(group_id=group_id).first()
+    group = Group.objects.filter(id=group_id).first()
     current_group_member = GroupMember.objects.filter(
         group=group, user=request.user, is_deleted=False
     ).first()
@@ -174,36 +162,36 @@ def add_group_member(request, group_id):
                 new_group_member.save()
                 send_invitation_email(
                     group.name,
-                    "invites@droverapp.com",
+                    "kathleen@droverapp.org",
                     [request.POST["email"]],
                 )
             else:
                 send_invitation_email(
                     group.name,
-                    "invites@droverapp.com",
+                    "kathleen@droverapp.org",
                     [request.POST["email"]],
                     invite_url,
                 )
-            return redirect("view_group", group.group_id)
+            return redirect("view_group", group.id)
         return render(request, "add_member.html")
     return redirect("dashboard")
 
 
 @login_required
 def edit_group_member(request, group_id, member_id):
-    group = Group.objects.filter(group_id=group_id).first()
-    current_group_member = GroupMember.objects.filter(
+    group = Group.objects.filter(id=group_id).first()
+    current_dr_group_member = GroupMember.objects.filter(
         group=group, user=request.user, is_deleted=False
     ).first()
-    if current_group_member and current_group_member.is_admin:
+    if current_dr_group_member and current_dr_group_member.is_admin:
         member = GroupMember.objects.filter(
-            group=group, member_id=member_id, is_deleted=False
+            group=group, id=member_id, is_deleted=False
         ).first()
         if member:
             if request.method == "POST":
                 member.is_admin = request.POST.get("is_admin", None) == "on"
                 member.save()
-                return redirect("edit_group", group.group_id)
+                return redirect("edit_group", group.id)
             return render(
                 request, "edit_member.html", {"member": member, "group": group}
             )
@@ -214,30 +202,30 @@ def edit_group_member(request, group_id, member_id):
 @require_http_methods(["POST"])
 def remove_group_member(request, group_id, member_id):
     if request.method == "POST":
-        group = Group.objects.filter(group_id=group_id).first()
-        current_group_member = GroupMember.objects.filter(
+        group = Group.objects.filter(id=group_id).first()
+        current_dr_group_member = GroupMember.objects.filter(
             group=group, user=request.user, is_deleted=False
         ).first()
-        if current_group_member and current_group_member.is_admin:
+        if current_dr_group_member and current_dr_group_member.is_admin:
             member = GroupMember.objects.filter(
-                group=group, member_id=member_id, is_deleted=False
+                group=group, id=member_id, is_deleted=False
             ).first()
             if member:
                 member.is_deleted = True
                 member.save()
-                return redirect("edit_group", group.group_id)
+                return redirect("edit_group", group.id)
     return redirect("dashboard")
 
 
 @login_required
 def send_message(request, group_id):
-    group = Group.objects.filter(group_id=group_id).first()
-    current_group_member = GroupMember.objects.filter(
+    group = Group.objects.filter(id=group_id).first()
+    current_dr_group_member = GroupMember.objects.filter(
         group=group, user=request.user, is_deleted=False
     ).first()
-    if current_group_member:
+    if current_dr_group_member:
         if request.method == "POST":
-            message_type = "AM" if current_group_member.is_admin else "MA"
+            message_type = "AM" if current_dr_group_member.is_admin else "MA"
             message = GroupMessage(
                 message=request.POST["message"],
                 sender=request.user,
@@ -266,8 +254,8 @@ def send_message(request, group_id):
                     reverse(
                         "conversation_details",
                         kwargs={
-                            "group_id": group.group_id,
-                            "message_id": message.message_id,
+                            "group_id": group.id,
+                            "message_id": message.id,
                         },
                     )
                 ),
@@ -276,16 +264,16 @@ def send_message(request, group_id):
                 send_text_message(
                     receiver.user.contact_number, request.POST["message"], message_url
                 )
-            return redirect("view_group", group.group_id)
+            return redirect("view_group", group.id)
         return render(
-            request, "compose_message.html", {"is_admin": current_group_member.is_admin}
+            request, "compose_message.html", {"is_admin": current_dr_group_member.is_admin}
         )
     return redirect("dashboard")
 
 
 @login_required
 def invite(request, group_id):
-    group = Group.objects.filter(group_id=group_id).first()
+    group = Group.objects.filter(id=group_id).first()
     current_group_member = GroupMember.objects.filter(
         group=group, user=request.user, is_deleted=False
     ).first()
@@ -295,14 +283,14 @@ def invite(request, group_id):
                 user=request.user, group=group, is_admin=False
             )
             new_group_member.save()
-            return redirect("view_group", group.group_id)
+            return redirect("view_group", group.id)
         return render(request, "group_invite.html", {"group_name": group.name})
     return redirect("dashboard")
 
 
 @login_required
 def inbox(request, group_id):
-    group = Group.objects.filter(group_id=group_id).first()
+    group = Group.objects.filter(id=group_id).first()
     current_group_member = GroupMember.objects.filter(
         group=group, user=request.user, is_deleted=False
     ).first()
@@ -347,7 +335,7 @@ def inbox(request, group_id):
 
 @login_required
 def conversations(request, group_id):
-    group = Group.objects.filter(group_id=group_id).first()
+    group = Group.objects.filter(id=group_id).first()
     current_group_member = GroupMember.objects.filter(
         group=group, user=request.user, is_deleted=False
     ).first()
@@ -361,7 +349,7 @@ def conversations(request, group_id):
                 .order_by("-message_time")
                 .annotate(
                     conversation_count=Subquery(
-                        GroupMessage.objects.filter(reply_to=OuterRef("message_id"))
+                        GroupMessage.objects.filter(reply_to=OuterRef("id"))
                         .values("reply_to")
                         .annotate(count=Count("pk"))
                         .values("count")
@@ -376,7 +364,7 @@ def conversations(request, group_id):
                 .order_by("-message_time")
                 .annotate(
                     conversation_count=Subquery(
-                        GroupMessage.objects.filter(reply_to=OuterRef("message_id"))
+                        GroupMessage.objects.filter(reply_to=OuterRef("id"))
                         .values("reply_to")
                         .annotate(count=Count("pk"))
                         .values("count")
@@ -395,7 +383,7 @@ def conversations(request, group_id):
                 .order_by("-message_time")
                 .annotate(
                     conversation_count=Subquery(
-                        GroupMessage.objects.filter(reply_to=OuterRef("message_id"))
+                        GroupMessage.objects.filter(reply_to=OuterRef("id"))
                         .values("reply_to")
                         .annotate(count=Count("pk"))
                         .values("count")
@@ -411,7 +399,7 @@ def conversations(request, group_id):
                 .order_by("-message_time")
                 .annotate(
                     conversation_count=Subquery(
-                        GroupMessage.objects.filter(reply_to=OuterRef("message_id"))
+                        GroupMessage.objects.filter(reply_to=OuterRef("id"))
                         .values("reply_to")
                         .annotate(count=Count("pk"))
                         .values("count")
@@ -433,7 +421,7 @@ def conversations(request, group_id):
 
 @login_required
 def message_details(request, group_id, message_id):
-    group = Group.objects.filter(group_id=group_id).first()
+    group = Group.objects.filter(id=group_id).first()
     current_group_member = GroupMember.objects.filter(
         group=group, user=request.user, is_deleted=False
     ).first()
@@ -447,7 +435,7 @@ def message_details(request, group_id, message_id):
                 message=request.POST["reply"],
                 sender=request.user,
                 receiver=receiver,
-                reply_to=message_id,
+                reply_to_id=message_id,
                 group=group,
                 message_time=datetime.datetime.now(),
                 message_type=message_type,
@@ -461,8 +449,8 @@ def message_details(request, group_id, message_id):
                     reverse(
                         "message_details",
                         kwargs={
-                            "group_id": group.group_id,
-                            "message_id": message.message_id,
+                            "group_id": group.id,
+                            "message_id": message.id,
                         },
                     )
                 ),
@@ -470,14 +458,14 @@ def message_details(request, group_id, message_id):
             send_text_message(
                 receiver.contact_number, request.POST["reply"], message_url
             )
-            return redirect("view_group", group.group_id)
+            return redirect("view_group", group.id)
         if current_group_member.is_admin:
             message = GroupMessage.objects.filter(
-                group=group, message_id=message_id
+                group=group, id=message_id
             ).first()
         else:
             message = GroupMessage.objects.filter(
-                group=group, message_id=message_id
+                group=group, id=message_id
             ).first()
 
         return render(
@@ -488,7 +476,7 @@ def message_details(request, group_id, message_id):
 
 @login_required
 def conversation_details(request, group_id, message_id):
-    group = Group.objects.filter(group_id=group_id).first()
+    group = Group.objects.filter(id=group_id).first()
     current_group_member = GroupMember.objects.filter(
         group=group, user=request.user, is_deleted=False
     ).first()
@@ -502,7 +490,7 @@ def conversation_details(request, group_id, message_id):
                 message=request.POST["reply"],
                 sender=request.user,
                 receiver=receiver,
-                reply_to=message_id,
+                reply_to_id=message_id,
                 group=group,
                 message_time=datetime.datetime.now(),
                 message_type=message_type,
@@ -516,8 +504,8 @@ def conversation_details(request, group_id, message_id):
                     reverse(
                         "conversation_details",
                         kwargs={
-                            "group_id": group.group_id,
-                            "message_id": message.message_id,
+                            "group_id": group.id,
+                            "message_id": message.id,
                         },
                     )
                 ),
@@ -527,10 +515,10 @@ def conversation_details(request, group_id, message_id):
             )
             return redirect("conversation_details", group_id, message_id)
         message = GroupMessage.objects.filter(
-            group=group, message_id=message_id
+            group=group, id=message_id
         ).first()
         conversations = (
-            GroupMessage.objects.filter(group=group, reply_to=message_id)
+            GroupMessage.objects.filter(group=group, reply_to_id=message_id)
             .filter(Q(sender=request.user) | Q(receiver=request.user))
             .all()
         )

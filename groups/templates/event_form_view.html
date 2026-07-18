@@ -1,0 +1,19 @@
+<div class="d-flex {% if not event %}hidden{% endif %}" id="event-view">
+  <span class="event-display-name">
+    {% if event %}{{ event.name }}{% endif %}
+  </span>
+  {% if event %}
+  <button class="btn btn-sm btn-secondary edit-event"
+    data-toggle="modal" data-target="#event-form-modal" data-evt-id="{{ event.id }}"
+    data-evt-name="{{ event.name }}"
+    data-evt-time="{{ event.event_time|date:'m/d/Y' }} {{ event.event_time|time:'h:i A' }}"
+    data-evt-venue-name="{{ event.venue_name }}"
+    data-evt-venue-address="{{ event.venue_address }}"
+    data-evt-venue-map="{{ event.venue_map_link }}"
+    data-evt-instructions="{{ event.instructions }}"
+    type="button">Edit</button>
+  {% endif %}
+  <button type="button" class="close"  aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>

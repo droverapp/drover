@@ -1,4 +1,4 @@
-<div class="modal fade" tabindex="-1" role="dialog" id="schedule-form-modal" aria-hidden="true">
+<div class="modal fade" tabindex="-1" role="dialog" id="event-form-modal" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -8,32 +8,32 @@
         </button>
       </div>
       <div class="modal-body">
-        <input type="hidden" id="schedule_id" value="0"/>
+        <input type="hidden" id="event_id" value="0"/>
         <div class="form-group">
-          <input class="form-control" id="schedule_name" placeholder="Event Name" />
+          <input class="form-control" id="event_name" placeholder="Event Name" />
         </div>
         <div class="form-group">
-          <input class="form-control schedule_datetimepicker" id="schedule_time" placeholder="Event Date and Time" />
+          <input class="form-control event_datetimepicker" id="event_time" placeholder="Event Date and Time" />
         </div>
         <div class="form-group">
-          <input class="form-control" id="schedule_venue_name" placeholder="Venue Name, e.g. Mom's Place"/>
+          <input class="form-control" id="event_venue_name" placeholder="Venue Name, e.g. Mom's Place"/>
         </div>
         <div class="form-group">
-          <input class="form-control" id="schedule_venue_address" placeholder="Venue Address" 
+          <input class="form-control" id="event_venue_address" placeholder="Venue Address" 
           data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" />
           <div class="dropdown-menu location-results" aria-labelledby="dropdownMenuLink">
           </div>
         </div>
         <div class="form-group">
-          <input class="form-control" id="schedule_venue_map" placeholder="Map Link - will be filled in automatically or paste in your own" />
+          <input class="form-control" id="event_venue_map" placeholder="Map Link - will be filled in automatically or paste in your own" />
         </div>
         <div class="form-group">
-          <input class="form-control" id="schedule_instructions" placeholder="Any other notes/instructions" />
+          <input class="form-control" id="event_instructions" placeholder="Any other notes/instructions" />
         </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-        <button type="button" id="save-schedule" class="btn btn-primary">Add Event</button>
+        <button type="button" id="save-event" class="btn btn-primary">Add Event</button>
       </div>
     </div>
   </div>

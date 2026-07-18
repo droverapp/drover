@@ -139,17 +139,23 @@ LOGIN_URL = "login"
 SENDGRID_API_KEY = env.str("SENDGRID_API_KEY")
 SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 
-EMAIL_HOST = "smtp.sendgrid.net"
-EMAIL_HOST_USER = "apikey"
-EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+if DEBUG:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+else:
+    EMAIL_HOST = "smtp.sendgrid.net"
+    EMAIL_HOST_USER = "apikey"
+    EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
 
 
 # Twilio settings
 FROM_NUMBER = env.str("FROM_NUMBER")
 TWILIO_SSID = env.str("TWILIO_SSID")
 TWILIO_AUTH_TOKEN = env.str("TWILIO_AUTH_TOKEN")
+TWILIO_ACCOUNT_SID = env.str("TWILIO_ACCOUNT_SID", default=TWILIO_SSID)
+TWILIO_API_KEY = env.str("TWILIO_API_KEY", default="")
+TWILIO_API_SECRET = env.str("TWILIO_API_SECRET", default="")
 
 
 # Static files (CSS, JavaScript, Images)

@@ -2,7 +2,7 @@
 
 function search(query, format, limit, results_container, type) {
   const params = `format=${format}&limit=${limit}`;
-  const url = `https://nominatim.openstreetmap.org/search/${query}?${params}`;
+  const url = `https://nominatim.openstreetmap.org/search?q=${query}&${params}`;
   fetch(url)
     .then(response => response.json())
       .then(locations => {
@@ -29,23 +29,23 @@ $(document).ready(function() {
   $('#venue').on('keyup', function() {
     const query = $(this).val();
     console.log(query);
-    search(query, 'json', 5, $(this).parent().find('.location-results'), 'event');
+    search(query, 'json', 5, $(this).parent().find('.location-results'), 'group');
   });
 
-  $(document).on('keyup', '#schedule_venue_address', function() {
+  $(document).on('keyup', '#event_venue_address', function() {
     const query = $(this).val();
     console.log(query);
-    search(query, 'json', 5, $(this).parent().find('.location-results'), 'schedule');
+    search(query, 'json', 5, $(this).parent().find('.location-results'), 'event');
   })
 
   $(document).on('click', '.location-item', function() {
     console.log('clicked');
-    if ($(this).hasClass('event-venue')) {
+    if ($(this).hasClass('group-venue')) {
       $('#venue').val($(this).data('display-name'));
-    } else if ($(this).hasClass('schedule-venue')) {
-      $('#schedule_venue_address').val($(this).data('display-name'));
+    } else if ($(this).hasClass('event-venue')) {
+      $('#event_venue_address').val($(this).data('display-name'));
       const map_link = `${window.location.protocol}//${window.location.host}/mapview/?lon=${$(this).data('longitude')}&lat=${$(this).data('latitude')}`;
-      $('#schedule_venue_map').val(map_link);
+      $('#event_venue_map').val(map_link);
     }
   });
 

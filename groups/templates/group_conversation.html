@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  {% include 'header.html' with title="Inbox" nav_menu=True group_id=group.group_id %}
+  {% include 'header.html' with title="Inbox" nav_menu=True group_id=group.id %}
   <div class="container">
     <h4 class="group-title">Sent Messages</h4>
     <div class="message-container">
       {% for message in sent_messages %}
-        <a class="message-details-link" href="{% url 'conversation_details' group.group_id message.message_id %}">
+        <a class="message-details-link" href="{% url 'conversation_details' group.id message.id %}">
           <div class="message">
             <b>From: {% if message.sender.name %}
                   {{ message.sender.name }}
@@ -32,7 +32,7 @@
     <h4 class="group-title">Received Messages</h4>
     <div class="message-container">
       {% for message in received_messages %}
-        <a class="message-details-link" href="{% url 'conversation_details' group.group_id message.message_id %}">
+        <a class="message-details-link" href="{% url 'conversation_details' group.id message.id %}">
           <div class="message">
             <b>From: {% if message.sender.name %}
                   {{ message.sender.name }}

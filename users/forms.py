@@ -7,14 +7,17 @@ from .models import User
 class SignUpForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ["name", "username", "password1", "password2", "contact_number"]
+        fields = ["first_name", "last_name", "username", "password1", "password2", "contact_number"]
 
         widgets = {
             "username": forms.TextInput(
                 attrs={"class": "form-control", "placeholder": "Email"}
             ),
-            "name": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Fullname"}
+            "first_name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "First Name"}
+            ),
+            "last_name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Last Name"}
             ),
             "contact_number": forms.TextInput(
                 attrs={

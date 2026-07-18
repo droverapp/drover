@@ -4,7 +4,7 @@
 <link rel=stylesheet type=text/css href="{% static 'css/bootstrap-datetimepicker.min.css' %}">
 {% endblock %}
 {% block content %}
-  {% include 'header.html' with title="Edit Group" nav_menu=True group_id=group.group_id page='edit' %}
+  {% include 'header.html' with title="Edit Group" nav_menu=True group_id=group.id page='edit' %}
   <div class="container">
     <form class="form-container edit-form" method="post">
       {% csrf_token %}
@@ -44,21 +44,15 @@
         <div class="dropdown-menu location-results" aria-labelledby="dropdownMenuLink">
         </div>
       </div>
-      <div class="form-group">
-        <label for="event_date">Edit Itenerary Start Date</label>
-        <div style="position: relative;">
-          <input class="form-control" name="event_date" id="event_date" placeholder="Event Date (YYYY-MM-DD)"/>
-        </div>
-      </div>
-      <div class="schedule-form-container">
-        <h2>Schedules</h2>
-        <div id="schedule-view-container">
-          {% for schedule in schedules %}
-          {% include 'schedule_form_view.html' with schedule_name=schedule.name %}
+      <div class="event-form-container">
+        <h2>Events</h2>
+        <div id="event-view-container">
+          {% for event in events %}
+          {% include 'event_form_view.html' with event=event %}
           {% endfor %}
         </div>
         <div style="text-align: center;">
-          <button class="btn btn-secondary" data-toggle="modal" data-target="#schedule-form-modal" type="button">Add Schedule</button>
+          <button class="btn btn-secondary" data-toggle="modal" data-target="#event-form-modal" type="button">Add Event</button>
         </div>
       </div>
       <div style="text-align: center;">
@@ -70,7 +64,7 @@
       <h3>Members</h3>
       <ul class="member-list">
         {% for member in group_members %}
-        <a href="{% url 'edit_group_member' group_id=group.group_id member_id=member.member_id %}">
+        <a href="{% url 'edit_group_member' group_id=group.id member_id=member.id %}">
           <li class="d-flex justify-content-between">
             <span>{{ member.user }}</span>
             {% if member.is_admin %}
@@ -79,26 +73,25 @@
           </li>
         </a>
         {% endfor %}
-        <a href="{% url 'add_group_member' group.group_id %}" class="member-link">Add Members</a>
+        <a href="{% url 'add_group_member' group.id %}" class="member-link">Add Members</a>
       </ul>
     </div>
   </div>
-  {% include 'schedule_form.html' %}
-  {% include 'schedule_form_modal.html' %}
-  {% include 'schedule_form_view.html' %}
+  {% include 'event_form.html' %}
+  {% include 'event_form_modal.html' %}
+  {% include 'event_form_view.html' %}
   {% include 'footer.html' with show_logo=True %}
 {% endblock %}
 
 {% block page_js %}
-<script src="{% static 'js/add_schedule.js' %}"></script>
+<script src="{% static 'js/add_event.js' %}"></script>
 <script src="{% static 'js/moment-with-locales.min.js' %}"></script>
 <script src="{% static 'js/bootstrap-datetimepicker.js' %}"></script>
 <script src="{% static 'js/search_location.js' %}"></script>
 
 <script type="text/javascript">
   $(function () {
-    $('#event_date').datetimepicker();
-    $('.schedule_datetimepicker').datetimepicker();
+    $('.event_datetimepicker').datetimepicker();
   });
 </script>
 {% endblock %}

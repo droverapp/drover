@@ -168,23 +168,23 @@ a.member-link {
 }
 
 
-.schedule-form-container {
+.event-form-container {
   margin-bottom: 3rem;
 }
 
-#schedule-view {
+#event-view {
   margin-bottom: 1rem;
 }
 
-.schedule-display-name {
+.event-display-name {
   flex-grow: 1;
 }
 
-.schedule {
+.event {
   margin: 1rem 0;
 }
 
-.schedule p {
+.event p {
   margin: 0;
 }
 

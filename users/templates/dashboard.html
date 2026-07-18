@@ -17,9 +17,6 @@
           <div class="group-container card">
             <div class="card-body">
               <div class="card-title">{{ group.group.name }}</div>
-              {% if group.group.event_date %}
-              <div class="card-subtitle mb-2 text-muted">{{ group.group.event_date|date:"F j Y" }}</div>
-              {% endif %}
               <p class="card-text">
                 {{ group.group.description|safe }}
                 <div class="group-invite">Invite Link: 
@@ -28,9 +25,9 @@
                   </a></div>
               </p>
               <div class="group-actions">
-                <a href="{% url 'view_group' group.group.group_id %}" class="card-link">View</a>
-                <a href="{% url 'edit_group' group.group.group_id %}" class="card-link">Edit</a>
-                <a href="{% url 'add_group_member' group.group.group_id %}" class="card-link">Add Members</a>
+                <a href="{% url 'view_group' group.group.id %}" class="card-link">View</a>
+                <a href="{% url 'edit_group' group.group.id %}" class="card-link">Edit</a>
+                <a href="{% url 'add_group_member' group.group.id %}" class="card-link">Add Members</a>
               </div>
             </div>
           </div>
@@ -44,15 +41,12 @@
           <div class="group-container card">
             <div class="card-body">
               <div class="card-title">{{ group.group.name }}</div>
-              {% if group.group.event_date %}
-              <div class="card-subtitle mb-2 text-muted">{{ group.group.event_date }}</div>
-              {% endif %}
               <p class="card-text">
                 {{ group.group.description }}
                 <!--Removed invite link from member groups here - KB -->
               </p>
               <div class="group-actions">
-                <a href="{% url 'view_group' group.group.group_id %}" class="card-link">View</a>
+                <a href="{% url 'view_group' group.group.id %}" class="card-link">View</a>
               </div>
             </div>
           </div>

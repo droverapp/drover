@@ -22,9 +22,11 @@
               and one character (@_!#$%^&*()<>?/\|}{~:)
             </p>
           {% endif %}
-          <!-- {% if field.help_text %}
+          {% comment %}
+          {% if field.help_text %}
             <small style="color: grey">{{ field.help_text }}</small>
-          {% endif %} -->
+          {% endif %}
+          {% endcomment %}
           {% for error in field.errors %}
             <p style="color: red">{{ error }}</p>
           {% endfor %}

@@ -15,7 +15,7 @@
       </div>
     </form>
     <form class="form-container" method="post" 
-      action="{% url 'remove_group_member' group_id=group.group_id member_id=member.member_id %}">
+      action="{% url 'remove_group_member' group_id=group.id member_id=member.id %}">
       {% csrf_token %}
       <div style="text-align: center; margin-top: 2rem;">
         <button class="btn btn-danger" type="submit" id="remove-member">Remove Member</button>

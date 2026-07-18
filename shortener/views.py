@@ -1,9 +1,7 @@
-from django.shortcuts import render
-
+from django.shortcuts import redirect, get_object_or_404
 from .models import ShortURL
-from django.shortcuts import redirect
 
 
 def shortener_resolver(request, short_path):
-    path = ShortURL.objects.filter(shortened_id=short_path).first().path
-    return redirect(path)
+    short_url = get_object_or_404(ShortURL, shortened_id=short_path)
+    return redirect(short_url.path)

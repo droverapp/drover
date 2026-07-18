@@ -13,6 +13,7 @@ More information and newsletter signup is available at [www.droverapp.org](https
 - Ensure you have [uv](https://astral.sh/uv).
 - Run `uv sync`
 - Run `uv run python3 manage.py migrate`
+- RUN `uv run python3 manage.py collectstatic`
 - Run `uv run python3 manage.py runserver`
 - Open http://localhost:8000
 
