@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Group',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
                 ('group_id', models.UUIDField(default=uuid.uuid4, editable=False, unique=True)),
                 ('name', models.CharField(max_length=120)),
                 ('event_date', models.DateTimeField(blank=True, null=True)),
@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='GroupMessage',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
                 ('message', models.TextField()),
                 ('message_time', models.DateTimeField(blank=True, default=datetime.datetime.now, null=True)),
                 ('status', models.CharField(choices=[('P', 'Pending'), ('S', 'Successfully Sent'), ('F', 'Sending Failed')], default='P', max_length=1)),
@@ -57,7 +57,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='GroupSchedule',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
                 ('name', models.CharField(max_length=255)),
                 ('schedule_time', models.DateTimeField()),
                 ('instructions', models.TextField(blank=True)),
@@ -70,16 +70,12 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='GroupMember',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
                 ('is_admin', models.BooleanField(default=False)),
                 ('group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='groups.group')),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
                 ('member_id', models.UUIDField(default=uuid.uuid4, editable=False, null=True)),
             ],
-        ),
-        migrations.RunPython(
-            code=groups.migrations.0007_populate_uuid_values_groupmember.gen_uuid,
-            reverse_code=django.db.migrations.operations.special.RunPython.noop,
         ),
         migrations.AlterField(
             model_name='groupmember',
