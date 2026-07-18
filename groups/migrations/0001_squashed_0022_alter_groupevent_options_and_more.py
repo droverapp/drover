@@ -339,9 +339,6 @@ class Migration(migrations.Migration):
             name='temp_id',
             field=models.UUIDField(default=uuid.uuid4, editable=False, null=True),
         ),
-        migrations.RunSQL(
-            sql="UPDATE groups_group SET temp_id = (SELECT hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(2)) || '-' || hex(randomblob(6))) WHERE temp_id IS NULL;",
-        ),
         migrations.AddField(
             model_name='group',
             name='updated_at',
