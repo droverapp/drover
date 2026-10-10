@@ -67,8 +67,8 @@ def edit_group(request, group_id):
                         request.POST.getlist("event_time[]")[index],
                         "%m/%d/%Y %I:%M %p",
                     ).strftime("%Y-%m-%d %H:%M")
-                event_id = int(request.POST.getlist("event_id[]")[index])
-                if event_id == 0:
+                event_id_raw = request.POST.getlist("event_id[]")[index]
+                if not event_id_raw or event_id_raw == "0":
                     # new event
                     event_time = datetime.datetime.strptime(
                         request.POST.getlist("event_time[]")[index],
@@ -92,7 +92,7 @@ def edit_group(request, group_id):
                     event.save()
                 else:
                     # old event
-                    event = GroupEvent.objects.filter(id=event_id).first()
+                    event = GroupEvent.objects.filter(id=event_id_raw).first()
                     if event:
                         event.name = request.POST.getlist("event_name[]")[index]
                         event.event_time = event_time
