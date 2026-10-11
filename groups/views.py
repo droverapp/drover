@@ -1,8 +1,10 @@
 import datetime
+import uuid
 import bleach
 
 from django.db.models import Q, Count, OuterRef, Subquery
-from django.shortcuts import render, redirect
+from django.http import Http404
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
@@ -69,7 +71,8 @@ def edit_group(request, group_id):
                     ).strftime("%Y-%m-%d %H:%M")
                 event_id_raw = request.POST.getlist("event_id[]")[index]
                 if not event_id_raw or event_id_raw == "0":
-                    # new event
+                    # New event: "0"/"" is the frontend sentinel
+                    # (static/js/add_event.js); no UUID-pk row can match it.
                     event_time = datetime.datetime.strptime(
                         request.POST.getlist("event_time[]")[index],
                         "%m/%d/%Y %I:%M %p",
@@ -91,24 +94,28 @@ def edit_group(request, group_id):
                     )
                     event.save()
                 else:
-                    # old event
-                    event = GroupEvent.objects.filter(id=event_id_raw).first()
-                    if event:
-                        event.name = request.POST.getlist("event_name[]")[index]
-                        event.event_time = event_time
-                        event.instructions = request.POST.getlist(
-                            "event_instructions[]"
-                        )[index]
-                        event.venue_name = request.POST.getlist(
-                            "event_venue_name[]"
-                        )[index]
-                        event.venue_address = request.POST.getlist(
-                            "event_venue_address[]"
-                        )[index]
-                        event.venue_map_link = request.POST.getlist(
-                            "event_venue_map[]"
-                        )[index]
-                        event.save()
+                    # Existing event: id must be a valid UUID and must belong
+                    # to this group; 404 immediately instead of skipping rows.
+                    try:
+                        event_id = uuid.UUID(event_id_raw)
+                    except ValueError:
+                        raise Http404(f"Invalid event id: {event_id_raw!r}")
+                    event = get_object_or_404(GroupEvent, id=event_id, group=group)
+                    event.name = request.POST.getlist("event_name[]")[index]
+                    event.event_time = event_time
+                    event.instructions = request.POST.getlist(
+                        "event_instructions[]"
+                    )[index]
+                    event.venue_name = request.POST.getlist(
+                        "event_venue_name[]"
+                    )[index]
+                    event.venue_address = request.POST.getlist(
+                        "event_venue_address[]"
+                    )[index]
+                    event.venue_map_link = request.POST.getlist(
+                        "event_venue_map[]"
+                    )[index]
+                    event.save()
  
             # Edit Old Events if changed
  
