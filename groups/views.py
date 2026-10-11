@@ -2,7 +2,16 @@ import datetime
 import uuid
 import bleach
 
-from django.db.models import Q, Count, OuterRef, Subquery
+from django.db.models import (
+    Q,
+    Count,
+    OuterRef,
+    Subquery,
+    Case,
+    When,
+    Value,
+    CharField,
+)
 from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -147,26 +156,47 @@ def view_group(request, group_id):
     ).first()
     if group_member:
         group_members = group.members.filter(is_deleted=False).all()
-        events = group.events.all().order_by("event_time")
-        # Pre-fetch RSVPs to avoid N+1 queries in the template
-        events = events.prefetch_related("rsvps", "rsvps__user")
-        # Build per-event RSVP data for the template (which can't do
-        # filter(user=request.user).first or filter(status='GOING').count)
-        rsvp_counts = {}
-        user_rsvps = {}
-        for event in events:
-            rsvps = event.rsvps.all()
-            rsvp_counts[str(event.id)] = {
-                "GOING": rsvps.filter(status=GroupEventRSVP.GOING).count(),
-                "NOT_GOING": rsvps.filter(status=GroupEventRSVP.NOT_GOING).count(),
-                "MAYBE": rsvps.filter(status=GroupEventRSVP.MAYBE).count(),
-            }
-        user_rsvps = {
-            rsvp.event_id: rsvp.status
-            for rsvp in GroupEventRSVP.objects.filter(
-                event__in=events, user=request.user
+        # Annotate counts + the user's own RSVP in one SQL query; the
+        # template then uses plain attribute access (no dict lookups).
+        events = (
+            group.events.all()
+            .order_by("event_time")
+            .annotate(
+                going_count=Count(
+                    "rsvps", filter=Q(rsvps__status=GroupEventRSVP.GOING)
+                ),
+                not_going_count=Count(
+                    "rsvps", filter=Q(rsvps__status=GroupEventRSVP.NOT_GOING)
+                ),
+                maybe_count=Count(
+                    "rsvps", filter=Q(rsvps__status=GroupEventRSVP.MAYBE)
+                ),
+                my_rsvp_display=Subquery(
+                    GroupEventRSVP.objects.filter(
+                        event=OuterRef("pk"), user=request.user
+                    )
+                    .annotate(
+                        display=Case(
+                            When(
+                                status=GroupEventRSVP.GOING,
+                                then=Value("Going"),
+                            ),
+                            When(
+                                status=GroupEventRSVP.NOT_GOING,
+                                then=Value("Not Going"),
+                            ),
+                            When(
+                                status=GroupEventRSVP.MAYBE,
+                                then=Value("Maybe"),
+                            ),
+                            default=Value(""),
+                            output_field=CharField(),
+                        )
+                    )
+                    .values("display")[:1]
+                ),
             )
-        }
+        )
         return render(
             request,
             "view_group.html",
@@ -175,8 +205,6 @@ def view_group(request, group_id):
                 "is_admin": group_member.is_admin,
                 "group_members": group_members,
                 "events": events,
-                "user_rsvps": user_rsvps,
-                "rsvp_counts": rsvp_counts,
             },
         )
     return redirect("dashboard")
