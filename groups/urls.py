@@ -28,4 +28,9 @@ urlpatterns = [
         views.conversation_details,
         name="conversation_details",
     ),
+    path(
+        "<uuid:group_id>/event/<uuid:event_id>/rsvp/<rsvstatus:status>/",
+        views.rsvp_event,
+        name="rsvp_event",
+    ),
 ]
