@@ -13,6 +13,8 @@ import uuid
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
+from inline_snapshot import snapshot
+from inline_snapshot_django import snapshot_queries
 
 from groups.models import Group, GroupMember, GroupEvent, GroupEventRSVP
 
@@ -498,3 +500,83 @@ class RSVPFullWorkflowTest(TestCase):
         self.assertFalse(GroupEventRSVP.objects.filter(event=event).exists())
         resp = self.c.get(reverse("view_group", kwargs={"group_id": group.id}))
         self.assertEqual(resp.status_code, 302)
+
+    def test_rsvp_and_group_page_query_variants(self):
+        """Snapshot SQL for group-page read and RSVP create/update/delete paths."""
+        owner = User.objects.create_user(username="snapshot-owner", password="pw")
+        user = User.objects.create_user(username="snapshot-member", password="pw")
+        group = Group.objects.create(name="Snapshots", owner=owner)
+        GroupMember.objects.create(user=user, group=group)
+        event = GroupEvent.objects.create(group=group, name="Query Event")
+        self.c.force_login(user)
+
+        with snapshot_queries() as view_queries:
+            response = self.c.get(reverse("view_group", kwargs={"group_id": group.id}))
+        self.assertEqual(response.status_code, 200)
+        assert view_queries == snapshot(
+            [
+                "SELECT ... FROM django_session WHERE ... LIMIT ...",
+                "SELECT ... FROM users_user WHERE ... LIMIT ...",
+                "SELECT ... FROM groups_group WHERE ... ORDER BY ... DESC LIMIT ...",
+                "SELECT ... FROM groups_groupmember INNER JOIN users_user ON ... WHERE ... ORDER BY ... ASC LIMIT ...",
+                "SELECT ... FROM shortener_shorturl WHERE ... ORDER BY ... DESC LIMIT ...",
+                "SELECT ... FROM shortener_shorturl WHERE ... ORDER BY ... DESC LIMIT ...",
+                "INSERT INTO shortener_shorturl (...) VALUES (...)",
+                "SELECT ... FROM groups_groupevent LEFT OUTER JOIN groups_groupeventrsvp ON ... WHERE ... GROUP BY ... ORDER BY ... ASC",
+            ]
+        )
+
+        with snapshot_queries() as create_queries:
+            self._rsvp(group, event, "going")
+        assert create_queries == snapshot(
+            [
+                "SELECT ... FROM django_session WHERE ... LIMIT ...",
+                "SELECT ... FROM users_user WHERE ... LIMIT ...",
+                "SELECT ... FROM groups_group WHERE ... ORDER BY ... DESC LIMIT ...",
+                "SELECT ... FROM groups_groupevent WHERE ... ORDER BY ... DESC LIMIT ...",
+                "SELECT ... FROM groups_groupmember INNER JOIN users_user ON ... WHERE ... ORDER BY ... ASC LIMIT ...",
+                "SELECT ... FROM groups_groupeventrsvp WHERE ... ORDER BY ... DESC LIMIT ...",
+                "SAVEPOINT s1",
+                "SELECT ... FROM groups_groupeventrsvp WHERE ... LIMIT ... FOR UPDATE",
+                "SAVEPOINT s2",
+                "INSERT INTO groups_groupeventrsvp (...) VALUES (...)",
+                "RELEASE SAVEPOINT s2",
+                "RELEASE SAVEPOINT s1",
+            ]
+        )
+        rsvp = GroupEventRSVP.objects.get(event=event, user=user)
+        self.assertEqual(rsvp.status, GroupEventRSVP.GOING)
+
+        with snapshot_queries() as update_queries:
+            self._rsvp(group, event, "maybe")
+        assert update_queries == snapshot(
+            [
+                "SELECT ... FROM django_session WHERE ... LIMIT ...",
+                "SELECT ... FROM users_user WHERE ... LIMIT ...",
+                "SELECT ... FROM groups_group WHERE ... ORDER BY ... DESC LIMIT ...",
+                "SELECT ... FROM groups_groupevent WHERE ... ORDER BY ... DESC LIMIT ...",
+                "SELECT ... FROM groups_groupmember INNER JOIN users_user ON ... WHERE ... ORDER BY ... ASC LIMIT ...",
+                "SELECT ... FROM groups_groupeventrsvp WHERE ... ORDER BY ... DESC LIMIT ...",
+                "SAVEPOINT s1",
+                "SELECT ... FROM groups_groupeventrsvp WHERE ... LIMIT ... FOR UPDATE",
+                "UPDATE groups_groupeventrsvp SET ... = ... WHERE ...",
+                "RELEASE SAVEPOINT s1",
+            ]
+        )
+        rsvp.refresh_from_db()
+        self.assertEqual(rsvp.status, GroupEventRSVP.MAYBE)
+
+        with snapshot_queries() as delete_queries:
+            self._rsvp(group, event, "maybe")
+        assert delete_queries == snapshot(
+            [
+                "SELECT ... FROM django_session WHERE ... LIMIT ...",
+                "SELECT ... FROM users_user WHERE ... LIMIT ...",
+                "SELECT ... FROM groups_group WHERE ... ORDER BY ... DESC LIMIT ...",
+                "SELECT ... FROM groups_groupevent WHERE ... ORDER BY ... DESC LIMIT ...",
+                "SELECT ... FROM groups_groupmember INNER JOIN users_user ON ... WHERE ... ORDER BY ... ASC LIMIT ...",
+                "SELECT ... FROM groups_groupeventrsvp WHERE ... ORDER BY ... DESC LIMIT ...",
+                "DELETE FROM groups_groupeventrsvp WHERE ...",
+            ]
+        )
+        self.assertFalse(GroupEventRSVP.objects.filter(event=event, user=user).exists())

@@ -27,6 +27,7 @@ SECRET_KEY = env.str("SECRET_KEY", default=get_random_secret_key()).encode("utf8
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", default=False)
+TEMPLATE_DEBUG = env.bool("TEMPLATE_DEBUG", default=DEBUG)
 
 ALLOWED_HOSTS = ["127.0.0.1", "localhost", ".herokuapp.com"]
 if DEBUG:
@@ -66,6 +67,7 @@ TEMPLATES = [
         "DIRS": [],
         "APP_DIRS": True,
         "OPTIONS": {
+            "debug": TEMPLATE_DEBUG,
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
