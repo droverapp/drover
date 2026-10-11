@@ -12,3 +12,7 @@ media/
 # local dev DB(s)
 **.db
 db.sqlite3
+
+# coverage.py output
+.coverage*
+htmlcov/
