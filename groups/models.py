@@ -94,6 +94,52 @@ class GroupEvent(models.Model):
         ordering = ['-event_time']
         # ordering = ['-rsvp_open']
 
+class GroupEventRSVP(models.Model):
+    """
+    Tracks RSVP responses for a group event.
+    One per (event, user); a user can change their response over time.
+    """
+    GOING = "GOING"
+    NOT_GOING = "NOT_GOING"
+    MAYBE = "MAYBE"
+
+    STATUS_CHOICES = [
+        (GOING, "Going"),
+        (NOT_GOING, "Not Going"),
+        (MAYBE, "Maybe"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event = models.ForeignKey(
+        GroupEvent,
+        on_delete=models.CASCADE,
+        related_name='rsvps',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='event_rsvps',
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default=GOING,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user} → {self.event.name}: {self.status}"
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['event', 'user'],
+                name='unique_event_user_rsvp',
+            ),
+        ]
+
 
 class GroupMessage(models.Model):
     """

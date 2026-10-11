@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load dict_filters %}
 
 {% block content %}
   {% include 'header.html' with title="Details" nav_menu=True group_id=group.id page='view' %}
@@ -32,12 +33,30 @@
         {% if event.instructions %}
         <p>Note: {{ event.instructions }}</p>
         {% endif %}
-        {% comment %}
-        {% if there's an event RSVP}
-        <p>Your RSVP status: {{MEMBERS RSVP}}</p>
-        {% If admin, add list/popup/link to see RSVPs for each event}
-        {% endcomment %}
-      </div>
+        {% if user_rsvps|get_item:event.id %}
+        <p>Your RSVP: {{ user_rsvps|get_item:event.id|capfirst }}</p>
+        {% else %}
+        <p>You haven't RSVP'd.</p>
+        {% endif %}
+        {% with counts=rsvp_counts|get_item:event.id %}
+        <p class="rsvp-counts">
+          {{ counts.GOING|default:0 }} Going · {{ counts.NOT_GOING|default:0 }} Not Going · {{ counts.MAYBE|default:0 }} Maybe
+        </p>
+        {% endwith %}
+        <div class="rsvp-toggle">
+          <form method="post" action="{% url 'rsvp_event' group_id=group.id event_id=event.id status='going' %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-primary">Going</button>
+          </form>
+          <form method="post" action="{% url 'rsvp_event' group_id=group.id event_id=event.id status='maybe' %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-warning">Maybe</button>
+          </form>
+          <form method="post" action="{% url 'rsvp_event' group_id=group.id event_id=event.id status='not_going' %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Not Going</button>
+          </form>
+        </div>
     {% endfor %}
     {% endif %}
   </div>
