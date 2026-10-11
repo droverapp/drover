@@ -22,8 +22,9 @@ db-reset:
 	docker compose down -v
 	docker compose up -d --wait db
 
-# Apply migrations
+# Apply migrations (preflight aborts if this database predates the UUID-PK release)
 migrate: db-up
+	uv run python manage.py preflight
 	uv run python manage.py migrate
 
 # Run dev server

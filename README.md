@@ -17,6 +17,17 @@ More information and newsletter signup is available at [www.droverapp.org](https
 - Run `uv run python3 manage.py runserver`
 - Open http://localhost:8000
 
+## Deploying
+
+This release deletes and regenerates the entire migration history, so an
+existing database cannot be upgraded in place. `manage.py preflight` (run
+automatically before `migrate` in the container boot and in `make migrate`)
+refuses to proceed against a pre-cutover database, so a bad deploy fails
+fast with guidance instead of half-applying a schema: dump anything you
+need (`heroku pg:dump`), then `heroku pg:reset DATABASE_URL` and redeploy.
+Local databases created before the cutover need the same treatment:
+`make db-reset`.
+
 ## Want to contribute?
 
 Yes, please! I'm in the process of putting together a proper roadmap and issues tracker and the like, but help is definitely appreciated. Even if you can't contribute code but have ideas for features you'd like to see or problems you'd like solved, I'm all ears.
