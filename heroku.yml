@@ -1,3 +1,10 @@
 build:
   docker:
     web: Dockerfile
+# Migrations run as the release phase: a failure aborts the release before it
+# serves traffic (the previous release keeps running, and Postgres rolls back
+# the failed migration atomically). Runs once per release, not per restart.
+release:
+  image: web
+  command:
+    - /app/.venv/bin/python manage.py migrate

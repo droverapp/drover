@@ -20,13 +20,14 @@ More information and newsletter signup is available at [www.droverapp.org](https
 ## Deploying
 
 This release deletes and regenerates the entire migration history, so an
-existing database cannot be upgraded in place. `manage.py preflight` (run
-automatically before `migrate` in the container boot and in `make migrate`)
-refuses to proceed against a pre-cutover database, so a bad deploy fails
-fast with guidance instead of half-applying a schema: dump anything you
-need (`heroku pg:dump`), then `heroku pg:reset DATABASE_URL` and redeploy.
-Local databases created before the cutover need the same treatment:
-`make db-reset`.
+existing database cannot be upgraded in place. `manage.py migrate` runs in
+Heroku's release phase (see `heroku.yml`) before a new release serves
+traffic: against a pre-cutover database it aborts with a schema error,
+Postgres rolls the failed migration back, and the previous release keeps
+running with the old schema untouched. Plan the cutover explicitly — dump
+anything you need (`heroku pg:dump`), then `heroku pg:reset DATABASE_URL`
+and redeploy. Local databases created before the cutover need the same
+treatment: `make db-reset`.
 
 ## Want to contribute?
 

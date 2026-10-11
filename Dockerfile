@@ -19,6 +19,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 # ENV TWILIO_AUTH_TOKEN=""
 # NOTE: Setting all these required environment variables to empty so that `collectstatic` succeeds.
 RUN DATABASE_URL="" SENDGRID_API_KEY="" FROM_NUMBER="" TWILIO_SSID="" TWILIO_AUTH_TOKEN="" /app/.venv/bin/python manage.py collectstatic
-CMD /app/.venv/bin/python manage.py preflight && \
-    /app/.venv/bin/python manage.py migrate && \
-    /app/.venv/bin/granian --host 0.0.0.0 --port $PORT --log-level=debug --interface wsgi drover.wsgi:application
+CMD /app/.venv/bin/granian --host 0.0.0.0 --port $PORT --log-level=debug --interface wsgi drover.wsgi:application
