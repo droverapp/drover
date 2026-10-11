@@ -7,6 +7,7 @@
 assets/
 media/
 **.log
+.coverage
 
 # local dev DB(s)
 **.db
