@@ -1,4 +1,4 @@
-FROM python:3.10-slim AS build-env
+FROM python:3.13-slim AS build-env
 RUN mkdir -p /app
 WORKDIR /app
 COPY uv.lock /app/uv.lock
