@@ -113,9 +113,9 @@ On new group messages, target active members according to the existing admin/mem
 - **Exit:** initial Web Push triggers are group messages and replies; provider calls are bounded and best-effort.
 
 ### Phase 1 — Group-message tests
-- [ ] Add route-level tests for authorized admin/member message creation, persisted direction/content, and role-based recipient selection.
-- [ ] Add inbox/conversation audience tests for admins, members, and non-members.
-- [ ] Test SMS body/link formatting and credential-selection branches with a fake Twilio client.
+- [x] Add route-level tests for authorized admin/member message creation, persisted direction/content, and role-based recipient selection.
+- [x] Add inbox/conversation audience tests for admins, members, and non-members.
+- [x] Test SMS body/link formatting and credential-selection branches with a fake Twilio client.
 - **Exit:** group-message creation and visibility behavior pass without live Twilio requests.
 
 ### Phase 2 — Invitation tests

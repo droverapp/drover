@@ -6,14 +6,17 @@ updates, group-page counts, and representative SQL query shapes.
 """
 
 import uuid
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from inline_snapshot import snapshot
 from inline_snapshot_django import snapshot_queries
 
-from groups.models import Group, GroupMember, GroupEvent, GroupEventRSVP
+from groups.models import Group, GroupEvent, GroupEventRSVP, GroupMember, GroupMessage
+from groups.sms import send_text_message
 
 User = get_user_model()
 
@@ -491,3 +494,171 @@ class RSVPFullWorkflowTest(TestCase):
         self.assertEqual(
             GroupEventRSVP.objects.filter(event=event, user=user).count(), 1
         )
+
+
+class GroupMessageFlowTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username="admin", password="pw", contact_number="+12025550101"
+        )
+        self.second_admin = User.objects.create_user(
+            username="second-admin", password="pw", contact_number="+12025550102"
+        )
+        self.member = User.objects.create_user(
+            username="member", password="pw", contact_number="+12025550103"
+        )
+        self.other_member = User.objects.create_user(
+            username="other-member", password="pw", contact_number="+12025550104"
+        )
+        self.deleted_member = User.objects.create_user(
+            username="deleted-member", password="pw", contact_number="+12025550105"
+        )
+        self.group = Group.objects.create(name="Messages", owner=self.admin)
+        GroupMember.objects.create(
+            user=self.admin, group=self.group, owner=True, is_admin=True
+        )
+        GroupMember.objects.create(
+            user=self.second_admin, group=self.group, is_admin=True
+        )
+        GroupMember.objects.create(user=self.member, group=self.group)
+        GroupMember.objects.create(user=self.other_member, group=self.group)
+        GroupMember.objects.create(
+            user=self.deleted_member, group=self.group, is_deleted=True
+        )
+        self.send_url = reverse("send_message", kwargs={"group_id": self.group.id})
+        self.inbox_url = reverse("inbox", kwargs={"group_id": self.group.id})
+
+    @patch("groups.views.send_text_message")
+    def test_admin_message_persists_and_targets_active_members(self, send_sms):
+        self.client.force_login(self.admin)
+        response = self.client.post(self.send_url, {"message": "Meeting at noon"})
+
+        self.assertEqual(response.status_code, 302)
+        message = GroupMessage.objects.get(group=self.group, sender=self.admin)
+        self.assertEqual(message.message, "Meeting at noon")
+        self.assertEqual(message.message_type, "AM")
+        self.assertCountEqual(
+            [call.args[0] for call in send_sms.call_args_list],
+            ["+12025550103", "+12025550104"],
+        )
+        for sent_call in send_sms.call_args_list:
+            self.assertEqual(sent_call.args[1], "Meeting at noon")
+            self.assertTrue(sent_call.args[2].startswith("http://testserver/"))
+
+    @patch("groups.views.send_text_message")
+    def test_member_message_persists_and_targets_active_admins(self, send_sms):
+        self.client.force_login(self.member)
+        response = self.client.post(self.send_url, {"message": "Need approval"})
+
+        self.assertEqual(response.status_code, 302)
+        message = GroupMessage.objects.get(group=self.group, sender=self.member)
+        self.assertEqual(message.message, "Need approval")
+        self.assertEqual(message.message_type, "MA")
+        self.assertCountEqual(
+            [call.args[0] for call in send_sms.call_args_list],
+            ["+12025550101", "+12025550102"],
+        )
+
+    def test_member_inbox_shows_own_messages_and_admin_broadcasts_only(self):
+        broadcast = GroupMessage.objects.create(
+            group=self.group, sender=self.admin, message="Everyone", message_type="AM"
+        )
+        direct = GroupMessage.objects.create(
+            group=self.group,
+            sender=self.admin,
+            receiver=self.member,
+            message="For you",
+            message_type="AM",
+        )
+        own = GroupMessage.objects.create(
+            group=self.group,
+            sender=self.member,
+            message="My question",
+            message_type="MA",
+        )
+        another_member = GroupMessage.objects.create(
+            group=self.group,
+            sender=self.other_member,
+            receiver=self.admin,
+            message="Not yours",
+            message_type="MA",
+        )
+
+        self.client.force_login(self.member)
+        response = self.client.get(self.inbox_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertCountEqual(
+            [message.pk for message in response.context["sent_messages"]], [own.pk]
+        )
+        self.assertCountEqual(
+            [message.pk for message in response.context["received_messages"]],
+            [broadcast.pk, direct.pk],
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(self.inbox_url)
+        self.assertCountEqual(
+            [message.pk for message in response.context["sent_messages"]],
+            [broadcast.pk, direct.pk],
+        )
+        self.assertCountEqual(
+            [message.pk for message in response.context["received_messages"]],
+            [own.pk, another_member.pk],
+        )
+
+    @patch("groups.views.send_text_message")
+    def test_nonmember_cannot_send_or_read_inbox(self, send_sms):
+        outsider = User.objects.create_user(username="outsider", password="pw")
+        self.client.force_login(outsider)
+
+        send_response = self.client.post(self.send_url, {"message": "No access"})
+        inbox_response = self.client.get(self.inbox_url)
+
+        self.assertEqual(send_response.status_code, 302)
+        self.assertEqual(inbox_response.status_code, 302)
+        self.assertFalse(GroupMessage.objects.filter(group=self.group).exists())
+        send_sms.assert_not_called()
+
+    def test_sms_helper_uses_account_token_and_formats_link(self):
+        with (
+            override_settings(
+                TWILIO_API_KEY="",
+                TWILIO_API_SECRET="",
+                TWILIO_ACCOUNT_SID="AC123",
+                TWILIO_AUTH_TOKEN="auth-token",
+                FROM_NUMBER="+12025550999",
+            ),
+            patch("groups.sms.Client") as twilio_client,
+        ):
+            twilio_client.return_value.messages.create.return_value = SimpleNamespace(
+                status="queued"
+            )
+            send_text_message(
+                "+12025550123", "Dinner at 6", "https://drover.example/reply/"
+            )
+
+        twilio_client.assert_called_once_with("AC123", "auth-token")
+        twilio_client.return_value.messages.create.assert_called_once_with(
+            to="+12025550123",
+            from_="+12025550999",
+            body="Dinner at 6.\n Please visit https://drover.example/reply/ to reply.",
+        )
+
+    def test_sms_helper_uses_api_key_credentials_when_configured(self):
+        with (
+            override_settings(
+                TWILIO_API_KEY="SK123",
+                TWILIO_API_SECRET="api-secret",
+                TWILIO_ACCOUNT_SID="AC123",
+                FROM_NUMBER="+12025550999",
+            ),
+            patch("groups.sms.Client") as twilio_client,
+        ):
+            twilio_client.return_value.messages.create.return_value = SimpleNamespace(
+                status="queued"
+            )
+            send_text_message("+12025550123", "Hello", "https://drover.example/r/")
+
+        twilio_client.assert_called_once_with("SK123", "api-secret", "AC123")
+        self.assertEqual(twilio_client.return_value.messages.create.call_count, 1)
