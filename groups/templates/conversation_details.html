@@ -29,13 +29,14 @@
       </div>
     {% endfor %}
   </div>
+  {% if can_reply %}
   <form class="reply-form form-container d-flex" method="post" style="margin-top: 1rem;">
     {% csrf_token %}
     <div class="form-group" style="flex-shrink: 0;">
       <input class="form-control" name="reply" id="reply" placeholder="REPLY" />
     </div>
-    <input type="hidden" name="receiver_email" value="{{ sender.username }}" />
     <button class="btn btn-primary" type="submit">Send</button>
   </form>
+  {% endif %}
   {% include 'footer.html' with show_logo=True %}
 {% endblock %}

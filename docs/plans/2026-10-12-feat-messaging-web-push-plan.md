@@ -48,7 +48,7 @@ Use Django integration tests against the real routes and database. Mock the Twil
 - Inbox/conversation queries expose the appropriate broadcast and participant messages to admins and members, not another member's private messages.
 - Active membership is required to compose or read messages; deleted/non-members do not gain access.
 - Invitation mail has the expected recipient, subject, invitation link or membership wording. No test reaches SendGrid or Twilio.
-- Event edits persist the submitted event changes within their group; replies retain parent, sender and receiver and are visible only to conversation participants.
+- Event edits persist submitted changes within their group; replies retain the parent, sender and server-derived recipient, and remain visible only to conversation participants.
 - Test SMS body/link formatting and credential-selection branches with a fake Twilio client. The existing registration consent flow is unchanged.
 
 Do not test Django model basics, URL reversal, mock echoes, provider implementation details, or the current `GroupMessage.status` as a delivery receipt: the view currently leaves it pending after sending.
@@ -96,6 +96,7 @@ On new group messages, target active members according to the existing admin/mem
 
 | Risk | Mitigation |
 |---|---|
+| Reply endpoints trust client-supplied recipient IDs or cross-group message IDs. | Load the parent within the active group, enforce participant/admin visibility, and derive the recipient from that parent on the server. |
 | iOS users expect notifications from an ordinary Safari tab. | Explain Home Screen installation and OS minimum in the opt-in UI; make unsupported states explicit and keep the site functional. |
 | Permission prompts are denied if shown unexpectedly. | Do not prompt on page load; request permission only after a clear user action explaining the benefit. |
 | Subscription endpoints or VAPID keys leak. | Store endpoint/keys server-side, protect registration/unsubscribe with login and CSRF, never log subscription secrets, and keep VAPID private key in environment secrets. |
@@ -124,8 +125,8 @@ On new group messages, target active members according to the existing admin/mem
 - **Exit:** both invitation outcomes and their access boundary are covered.
 
 ### Phase 3 — Event changes and group-message replies
-- [ ] Add event create/update behavior tests for changed fields and events scoped to their owning group.
-- [ ] Add reply tests for parent/receiver association, redirect target, and participant-only conversation visibility.
+- [x] Add event create/update behavior tests for changed fields and events scoped to their owning group.
+- [x] Add reply tests for parent/receiver association, redirect target, and participant-only conversation visibility.
 - **Exit:** event edits and threaded replies have behavioral coverage; neither adds a Web Push trigger in this initial delivery scope.
 
 ### Phase 4 — Add Web Push subscription lifecycle

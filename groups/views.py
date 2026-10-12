@@ -1,35 +1,36 @@
 import datetime
 import uuid
-import bleach
 
+import bleach
+from django.contrib.auth.decorators import login_required
 from django.db.models import (
-    Q,
+    Case,
+    CharField,
     Count,
     OuterRef,
+    Q,
     Subquery,
-    Case,
-    When,
     Value,
-    CharField,
+    When,
 )
 from django.http import Http404, HttpResponseForbidden
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
-from django.contrib.auth.decorators import login_required
+
+from shortener.utils import generate_short_url
 from users.models import User
 
+from .emails import send_invitation_email
 from .models import (
     Group,
-    GroupMember,
     GroupEvent,
     GroupEventRSVP,
+    GroupMember,
     GroupMessage,
     GroupMessageImage,
 )
-from .emails import send_invitation_email
 from .sms import send_text_message
-from shortener.utils import generate_short_url
 
 
 @login_required
@@ -215,9 +216,7 @@ def add_group_member(request, group_id):
         group=group, user=request.user, is_deleted=False
     ).first()
     if current_group_member and current_group_member.is_admin:
-        invite_url = "{}://{}{}".format(
-            request.scheme, request.get_host(), group.get_invite_url()
-        )
+        invite_url = f"{request.scheme}://{request.get_host()}{group.get_invite_url()}"
         if request.method == "POST":
             user = User.objects.filter(username=request.POST["email"]).first()
             if user:
@@ -488,122 +487,142 @@ def conversations(request, group_id):
 @login_required
 def message_details(request, group_id, message_id):
     group = Group.objects.filter(id=group_id).first()
-    current_group_member = GroupMember.objects.filter(
+    group_member = GroupMember.objects.filter(
         group=group, user=request.user, is_deleted=False
     ).first()
-    if current_group_member:
-        if request.method == "POST":
-            message_type = "AM" if current_group_member.is_admin else "MA"
-            receiver = User.objects.filter(
-                username=request.POST["receiver_email"]
-            ).first()
-            message = GroupMessage(
-                message=request.POST["reply"],
-                sender=request.user,
-                receiver=receiver,
-                reply_to_id=message_id,
-                group=group,
-                message_time=datetime.datetime.now(),
-                message_type=message_type,
-            )
-            message.save()
+    if not group_member:
+        return redirect("dashboard")
 
-            message_url = "{}://{}{}".format(
-                request.scheme,
-                request.get_host(),
-                generate_short_url(
-                    reverse(
-                        "message_details",
-                        kwargs={
-                            "group_id": group.id,
-                            "message_id": message.id,
-                        },
-                    )
-                ),
-            )
-            send_text_message(
-                receiver.contact_number, request.POST["reply"], message_url
-            )
-            return redirect("view_group", group.id)
-        if current_group_member.is_admin:
-            message = GroupMessage.objects.filter(group=group, id=message_id).first()
-        else:
-            message = GroupMessage.objects.filter(group=group, id=message_id).first()
+    message = _get_group_message_for_member(
+        group, message_id, request.user, group_member
+    )
+    reply_recipient = _group_message_reply_recipient(
+        message, request.user, group_member
+    )
+    if request.method == "POST":
+        if not reply_recipient:
+            return HttpResponseForbidden()
 
-        return render(
-            request, "message_details.html", {"group": group, "message": message}
+        reply = GroupMessage(
+            message=request.POST["reply"],
+            sender=request.user,
+            receiver=reply_recipient,
+            reply_to=message,
+            group=group,
+            message_time=datetime.datetime.now(),
+            message_type="AM" if group_member.is_admin else "MA",
         )
-    return redirect("dashboard")
+        reply.save()
+
+        message_url = "{}://{}{}".format(
+            request.scheme,
+            request.get_host(),
+            generate_short_url(
+                reverse(
+                    "message_details",
+                    kwargs={"group_id": group.id, "message_id": reply.id},
+                )
+            ),
+        )
+        send_text_message(
+            reply_recipient.contact_number, request.POST["reply"], message_url
+        )
+        return redirect("view_group", group.id)
+
+    return render(
+        request,
+        "message_details.html",
+        {"group": group, "message": message, "can_reply": reply_recipient is not None},
+    )
 
 
 @login_required
 def conversation_details(request, group_id, message_id):
     group = Group.objects.filter(id=group_id).first()
-    current_group_member = GroupMember.objects.filter(
+    group_member = GroupMember.objects.filter(
         group=group, user=request.user, is_deleted=False
     ).first()
-    if current_group_member:
-        if request.method == "POST":
-            message_type = "AM" if current_group_member.is_admin else "MA"
-            receiver = User.objects.filter(
-                username=request.POST["receiver_email"]
-            ).first()
-            message = GroupMessage(
-                message=request.POST["reply"],
-                sender=request.user,
-                receiver=receiver,
-                reply_to_id=message_id,
-                group=group,
-                message_time=datetime.datetime.now(),
-                message_type=message_type,
-            )
-            message.save()
+    if not group_member:
+        return redirect("dashboard")
 
-            message_url = "{}://{}{}".format(
-                request.scheme,
-                request.get_host(),
-                generate_short_url(
-                    reverse(
-                        "conversation_details",
-                        kwargs={
-                            "group_id": group.id,
-                            "message_id": message.id,
-                        },
-                    )
-                ),
-            )
-            send_text_message(
-                receiver.contact_number, request.POST["reply"], message_url
-            )
-            return redirect("conversation_details", group_id, message_id)
-        message = GroupMessage.objects.filter(group=group, id=message_id).first()
-        conversations = (
-            GroupMessage.objects.filter(group=group, reply_to_id=message_id)
-            .filter(Q(sender=request.user) | Q(receiver=request.user))
-            .all()
+    message = _get_group_message_for_member(
+        group, message_id, request.user, group_member
+    )
+    reply_recipient = _group_message_reply_recipient(
+        message, request.user, group_member
+    )
+    if request.method == "POST":
+        if not reply_recipient:
+            return HttpResponseForbidden()
+
+        reply = GroupMessage(
+            message=request.POST["reply"],
+            sender=request.user,
+            receiver=reply_recipient,
+            reply_to=message,
+            group=group,
+            message_time=datetime.datetime.now(),
+            message_type="AM" if group_member.is_admin else "MA",
         )
+        reply.save()
 
-        sender = message.sender
-        if sender == request.user:
-            for conversation in conversations:
-                if (
-                    conversation.sender != request.user
-                    and message.message_type != conversation.message_type
-                ):
-                    sender = conversation.sender
-                    break
-
-        return render(
-            request,
-            "conversation_details.html",
-            {
-                "group": group,
-                "message": message,
-                "conversations": conversations,
-                "sender": sender,
-            },
+        message_url = "{}://{}{}".format(
+            request.scheme,
+            request.get_host(),
+            generate_short_url(
+                reverse(
+                    "conversation_details",
+                    kwargs={"group_id": group.id, "message_id": reply.id},
+                )
+            ),
         )
-    return redirect("dashboard")
+        send_text_message(
+            reply_recipient.contact_number, request.POST["reply"], message_url
+        )
+        return redirect("conversation_details", group_id, message_id)
+
+    conversations = (
+        GroupMessage.objects.filter(group=group, reply_to_id=message_id)
+        .filter(Q(sender=request.user) | Q(receiver=request.user))
+        .all()
+    )
+    return render(
+        request,
+        "conversation_details.html",
+        {
+            "group": group,
+            "message": message,
+            "conversations": conversations,
+            "can_reply": reply_recipient is not None,
+        },
+    )
+
+
+def _get_group_message_for_member(group, message_id, user, group_member):
+    message = get_object_or_404(GroupMessage, group=group, id=message_id)
+    if (
+        not group_member.is_admin
+        and message.sender_id != user.id
+        and message.receiver_id != user.id
+        and not (message.message_type == "AM" and message.receiver_id is None)
+    ):
+        raise Http404
+    return message
+
+
+def _group_message_reply_recipient(message, user, group_member):
+    if message.sender_id == user.id:
+        recipient = message.receiver
+    else:
+        recipient = message.sender
+
+    if recipient is None or recipient.id == user.id:
+        return None
+    if not GroupMember.objects.filter(
+        group=message.group, user=recipient, is_deleted=False
+    ).exists():
+        return None
+    return recipient
 
 
 @login_required

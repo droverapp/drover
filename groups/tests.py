@@ -197,34 +197,48 @@ class EditGroupEventIdTests(TestCase):
         return self.client.post(
             url,
             {
-                "description": "d",
-                "venue": "v",
+                "description": "Updated group description",
+                "venue": "Updated group venue",
                 "event_id[]": event_ids,
                 "event_name[]": ["New name"] * len(event_ids),
                 "event_time[]": ["01/02/2026 03:04 PM"] * len(event_ids),
-                "event_instructions[]": [""] * len(event_ids),
-                "event_venue_name[]": [""] * len(event_ids),
-                "event_venue_address[]": [""] * len(event_ids),
-                "event_venue_map[]": [""] * len(event_ids),
+                "event_instructions[]": ["Bring a dish"] * len(event_ids),
+                "event_venue_name[]": ["Community Hall"] * len(event_ids),
+                "event_venue_address[]": ["123 Main Street"] * len(event_ids),
+                "event_venue_map[]": ["https://maps.example.com/hall"] * len(event_ids),
             },
         )
 
-    def test_zero_sentinel_creates_new_event(self):
+    def test_zero_sentinel_creates_event_with_submitted_details(self):
         response = self.post_events(["0"])
         self.assertEqual(response.status_code, 302)
         self.assertEqual(GroupEvent.objects.filter(group=self.group).count(), 2)
+        new_event = GroupEvent.objects.get(group=self.group, name="New name")
+        self.assertEqual(new_event.instructions, "Bring a dish")
+        self.assertEqual(new_event.venue_name, "Community Hall")
+        self.assertEqual(new_event.venue_address, "123 Main Street")
 
     def test_empty_sentinel_creates_new_event(self):
         response = self.post_events([""])
         self.assertEqual(response.status_code, 302)
         self.assertEqual(GroupEvent.objects.filter(group=self.group).count(), 2)
 
-    def test_existing_uuid_updates_in_place(self):
+    def test_existing_uuid_updates_all_event_details_in_place(self):
         response = self.post_events([str(self.event.id)])
         self.assertEqual(response.status_code, 302)
         self.event.refresh_from_db()
         self.assertEqual(self.event.name, "New name")
+        self.assertEqual(
+            self.event.event_time.strftime("%Y-%m-%d %H:%M"), "2026-01-02 15:04"
+        )
+        self.assertEqual(self.event.instructions, "Bring a dish")
+        self.assertEqual(self.event.venue_name, "Community Hall")
+        self.assertEqual(self.event.venue_address, "123 Main Street")
+        self.assertEqual(self.event.venue_map_link, "https://maps.example.com/hall")
         self.assertEqual(GroupEvent.objects.filter(group=self.group).count(), 1)
+        self.group.refresh_from_db()
+        self.assertEqual(self.group.description, "Updated group description")
+        self.assertEqual(self.group.venue, "Updated group venue")
 
     def test_unknown_uuid_is_404(self):
         response = self.post_events([str(uuid.uuid4())])
@@ -738,3 +752,143 @@ class GroupInvitationTests(TestCase):
             ).exists()
         )
         self.assertEqual(mail.outbox, [])
+
+
+class GroupMessageReplyTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username="reply-admin", password="pw", contact_number="+12025550201"
+        )
+        self.member = User.objects.create_user(
+            username="reply-member", password="pw", contact_number="+12025550202"
+        )
+        self.other_member = User.objects.create_user(
+            username="reply-other", password="pw", contact_number="+12025550203"
+        )
+        self.group = Group.objects.create(name="Replies", owner=self.admin)
+        GroupMember.objects.create(
+            user=self.admin, group=self.group, owner=True, is_admin=True
+        )
+        GroupMember.objects.create(user=self.member, group=self.group)
+        GroupMember.objects.create(user=self.other_member, group=self.group)
+        self.admin_message = GroupMessage.objects.create(
+            group=self.group,
+            sender=self.admin,
+            message="Group announcement",
+            message_type="AM",
+        )
+        self.member_message = GroupMessage.objects.create(
+            group=self.group,
+            sender=self.member,
+            message="Question for admins",
+            message_type="MA",
+        )
+
+    def _url(self, route_name, message, group=None):
+        return reverse(
+            route_name,
+            kwargs={"group_id": (group or self.group).id, "message_id": message.id},
+        )
+
+    @patch("groups.views.send_text_message")
+    def test_member_reply_uses_announcement_sender_not_posted_receiver(self, send_sms):
+        self.client.force_login(self.member)
+        response = self.client.post(
+            self._url("conversation_details", self.admin_message),
+            {"reply": "I can attend", "receiver_email": self.other_member.username},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response["Location"], self._url("conversation_details", self.admin_message)
+        )
+        reply = GroupMessage.objects.get(reply_to=self.admin_message)
+        self.assertEqual(reply.message, "I can attend")
+        self.assertEqual(reply.sender, self.member)
+        self.assertEqual(reply.receiver, self.admin)
+        self.assertEqual(reply.message_type, "MA")
+        send_sms.assert_called_once()
+        self.assertEqual(send_sms.call_args.args[0], self.admin.contact_number)
+
+        response = self.client.get(
+            self._url("conversation_details", self.admin_message)
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(reply, response.context["conversations"])
+
+    @patch("groups.views.send_text_message")
+    def test_admin_reply_targets_member_author(self, send_sms):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            self._url("conversation_details", self.member_message),
+            {
+                "reply": "We will follow up",
+                "receiver_email": self.other_member.username,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        reply = GroupMessage.objects.get(reply_to=self.member_message)
+        self.assertEqual(reply.sender, self.admin)
+        self.assertEqual(reply.receiver, self.member)
+        self.assertEqual(reply.message_type, "AM")
+        self.assertEqual(send_sms.call_args.args[0], self.member.contact_number)
+
+    @patch("groups.views.send_text_message")
+    def test_legacy_message_details_reply_uses_parent_author(self, send_sms):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            self._url("message_details", self.member_message),
+            {"reply": "I will help", "receiver_email": self.other_member.username},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        reply = GroupMessage.objects.get(reply_to=self.member_message)
+        self.assertEqual(reply.receiver, self.member)
+        self.assertEqual(send_sms.call_args.args[0], self.member.contact_number)
+
+    @patch("groups.views.send_text_message")
+    def test_nonparticipant_cannot_view_or_reply_to_private_thread(self, send_sms):
+        self.client.force_login(self.other_member)
+        url = self._url("conversation_details", self.member_message)
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+        response = self.client.get(self._url("message_details", self.member_message))
+        self.assertEqual(response.status_code, 404)
+
+        response = self.client.post(
+            url,
+            {"reply": "Not allowed", "receiver_email": self.admin.username},
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(
+            GroupMessage.objects.filter(
+                reply_to=self.member_message, sender=self.other_member
+            ).exists()
+        )
+        send_sms.assert_not_called()
+
+    @patch("groups.views.send_text_message")
+    def test_cannot_reply_to_message_from_another_group(self, send_sms):
+        other_group = Group.objects.create(name="Private", owner=self.admin)
+        foreign_message = GroupMessage.objects.create(
+            group=other_group,
+            sender=self.admin,
+            message="Not in this group",
+            message_type="AM",
+        )
+        self.client.force_login(self.member)
+
+        url = reverse(
+            "conversation_details",
+            kwargs={"group_id": self.group.id, "message_id": foreign_message.id},
+        )
+        response = self.client.post(
+            url, {"reply": "Cross-group reply", "receiver_email": self.admin.username}
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(GroupMessage.objects.filter(reply_to=foreign_message).exists())
+        send_sms.assert_not_called()
