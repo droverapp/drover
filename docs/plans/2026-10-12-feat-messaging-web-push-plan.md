@@ -119,8 +119,8 @@ On new group messages, target active members according to the existing admin/mem
 - **Exit:** group-message creation and visibility behavior pass without live Twilio requests.
 
 ### Phase 2 — Invitation tests
-- [ ] Add admin-only invitation tests for existing users and new users, including resulting membership and invitation-link email content.
-- [ ] Use Django's locmem email backend; no test reaches SendGrid.
+- [x] Add admin-only invitation tests for existing users and new users, including resulting membership and invitation-link email content.
+- [x] Use Django's locmem email backend; no test reaches SendGrid.
 - **Exit:** both invitation outcomes and their access boundary are covered.
 
 ### Phase 3 — Event changes and group-message replies

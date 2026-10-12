@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from inline_snapshot import snapshot
@@ -662,3 +663,78 @@ class GroupMessageFlowTests(TestCase):
 
         twilio_client.assert_called_once_with("SK123", "api-secret", "AC123")
         self.assertEqual(twilio_client.return_value.messages.create.call_count, 1)
+
+
+class GroupInvitationTests(TestCase):
+    def setUp(self):
+        mail.outbox = []
+        self.admin = User.objects.create_user(username="invite-admin", password="pw")
+        self.existing_user = User.objects.create_user(
+            username="new-member@example.com", password="pw"
+        )
+        self.group = Group.objects.create(name="Invites", owner=self.admin)
+        GroupMember.objects.create(
+            user=self.admin, group=self.group, owner=True, is_admin=True
+        )
+        self.url = reverse("add_group_member", kwargs={"group_id": self.group.id})
+        self.client.force_login(self.admin)
+
+    def test_admin_adds_existing_user_and_sends_membership_email(self):
+        with override_settings(
+            EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"
+        ):
+            response = self.client.post(
+                self.url, {"email": self.existing_user.username}
+            )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            GroupMember.objects.filter(
+                group=self.group, user=self.existing_user
+            ).exists()
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        message = mail.outbox[0]
+        self.assertEqual(message.to, [self.existing_user.username])
+        self.assertEqual(
+            message.subject, "Drover: You have been added to the group Invites"
+        )
+        self.assertEqual(message.body, "Welcome to group Invites")
+
+    def test_admin_emails_invitation_link_for_unregistered_address(self):
+        email = "guest@example.com"
+
+        with override_settings(
+            EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"
+        ):
+            response = self.client.post(self.url, {"email": email})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            GroupMember.objects.filter(group=self.group, user__username=email).exists()
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        message = mail.outbox[0]
+        self.assertEqual(message.to, [email])
+        self.assertEqual(
+            message.subject, "You've been invited to join a group on Drover!: Invites"
+        )
+        self.assertIn("Invitation URL: http://testserver/", message.body)
+
+    def test_nonadmin_cannot_add_members_or_send_invitation_email(self):
+        member = User.objects.create_user(username="invite-member", password="pw")
+        GroupMember.objects.create(user=member, group=self.group)
+        self.client.force_login(member)
+
+        with override_settings(
+            EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"
+        ):
+            response = self.client.post(self.url, {"email": "guest@example.com"})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            GroupMember.objects.filter(
+                group=self.group, user=self.existing_user
+            ).exists()
+        )
+        self.assertEqual(mail.outbox, [])
