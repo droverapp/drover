@@ -14,12 +14,13 @@ Add regression coverage for Drover's existing group-message flows, then add Web 
 
 `groups/tests.py` covers RSVP and event editing, but no tests exercise group-message creation, inbox/conversation visibility, email invitations, or outbound SMS. `send_message`, `message_details`, and `conversation_details` call Twilio from request handlers; `add_group_member` sends email. Tests for those paths must isolate the provider boundaries.
 
-There is no web app manifest, service worker, push-subscription model or Web Push sender. The browser UI is Django templates with static JavaScript. A signup template displays a Twilio-consent checkbox, but `SignUpForm` does not include it and `User` has no SMS-consent field; message delivery does not check consent. Do not write tests that endorse the current SMS recipient policy until that policy is confirmed.
+There is no web app manifest, service worker, push-subscription model or Web Push sender. The browser UI is Django templates with static JavaScript. The signup flow includes SMS consent; per user direction, this plan leaves that registration step unchanged and does not block message tests on a separate consent model.
 
 ## Target End State
 
-- Tests prove message persistence, role-based delivery targeting, reply threading, inbox visibility and invitation-email behavior without real provider calls.
-- SMS recipient eligibility has an explicit, persisted consent rule before tests pin its audience.
+- Tests prove message persistence, role-based delivery targeting, reply threading, event edits, inbox visibility and invitation-email behavior without real provider calls.
+- Test coverage proceeds in order: group messages, invitations, then event changes and group-message replies.
+- The user-confirmed registration SMS-consent flow remains unchanged; no separate consent model blocks this work.
 - Users can enable and revoke Web Push per browser/device; unsupported or unconfigured clients continue using the existing app without errors.
 - New group messages and replies can notify eligible push subscribers with a generic, privacy-preserving notification and a same-origin link.
 - iOS support is accurately described as Home Screen web apps on iOS/iPadOS 16.4 or later; Android support is limited to browsers implementing Push API and Service Workers.
@@ -27,29 +28,31 @@ There is no web app manifest, service worker, push-subscription model or Web Pus
 ## Scope and Non-Goals
 
 **In scope**
-- Behavioral tests for the existing group-message, reply, inbox, conversation, invitation-email, and SMS integration boundaries.
+- Behavioral tests for group messages, invitations, event edits, group-message replies, inbox/conversation visibility, and the SMS/email integration boundaries.
 - Explicit Web Push opt-in, per-user/per-device subscription storage, send handling for new group messages and replies, unsubscribe, and stale-subscription cleanup.
 - Browser-level smoke checks on an HTTPS deployment and supported iOS/Android devices.
 
 **Out of scope**
 - Native iOS/Android apps, scheduled event reminders, RSVP notifications, a general offline-first PWA, replacing SMS/email, silent pushes, or notification-history UI.
 - A new task queue or guaranteed/retried delivery system unless fan-out measurements show synchronous delivery is unsuitable.
-- Expanding or changing SMS consent policy without resolving the consent gap in Phase 0.
+- Changing the existing registration SMS-consent flow.
+
 
 ## Proposed Solution
 
 ### Existing messaging test slice
 
-Use Django integration tests against the real routes and database. Mock the Twilio client or `groups.views.send_text_message`; use Django's locmem email backend for invitation paths. Cover observable outcomes:
+Use Django integration tests against the real routes and database. Mock the Twilio client or `groups.views.send_text_message`; use Django's locmem email backend for invitation paths. Execute the test work in this order: group messages, invitations, then event changes and group-message replies.
 
-- An authorized admin's group message is stored as `AM`; an authorized member's is stored as `MA`.
-- Replies retain the parent message, group, sender and intended receiver; the HTTP flow redirects to the expected conversation.
+- An authorized admin's group message is stored as `AM`; an authorized member's is stored as `MA`; tests cover the active-member recipient matrix.
 - Inbox/conversation queries expose the appropriate broadcast and participant messages to admins and members, not another member's private messages.
 - Active membership is required to compose or read messages; deleted/non-members do not gain access.
 - Invitation mail has the expected recipient, subject, invitation link or membership wording. No test reaches SendGrid or Twilio.
-- Test SMS body/link formatting and credential-selection branches with a fake Twilio client. Test recipient selection only after the consent contract is decided.
+- Event edits persist the submitted event changes within their group; replies retain parent, sender and receiver and are visible only to conversation participants.
+- Test SMS body/link formatting and credential-selection branches with a fake Twilio client. The existing registration consent flow is unchanged.
 
 Do not test Django model basics, URL reversal, mock echoes, provider implementation details, or the current `GroupMessage.status` as a delivery receipt: the view currently leaves it pending after sending.
+
 
 ### Web Push slice
 
@@ -57,7 +60,7 @@ Use the standards-based Web Push API rather than a native push SDK. The page fea
 
 Store the opaque subscription endpoint and its encryption keys against the authenticated user, unique by endpoint, allowing multiple devices per user. Keep the VAPID private key in environment configuration; expose only the public key to the browser. Treat endpoints and keys as secrets: never place them in logs or client-visible pages. The service worker must display a notification for every push and open only a same-origin Drover URL when clicked. Use generic notification copy; do not put message text, phone numbers, or private conversation content on the lock screen.
 
-On new group messages, target active members according to the existing admin/member direction; on replies, target the other conversation participant. Never notify the sender. Keep provider failures from rolling back an already-saved message, delete subscriptions rejected as expired/gone (for example, HTTP 404/410), and use bounded delivery timeouts. Start with synchronous, best-effort delivery only if Phase 0 confirms expected group sizes are small; otherwise add a durable asynchronous delivery mechanism as a separate design decision rather than allowing request time to grow with unbounded fan-out.
+On new group messages, target active members according to the existing admin/member direction; on replies, target the other conversation participant. Never notify the sender. Keep provider failures from rolling back an already-saved message, delete subscriptions rejected as expired/gone (for example, HTTP 404/410), and use bounded delivery timeouts. Use synchronous, best-effort delivery with bounded timeouts; Phase 0 checks group sizes and sends this work back to planning if that bound is not acceptable.
 
 ## Decision Rationale
 
@@ -74,24 +77,25 @@ On new group messages, target active members according to the existing admin/mem
 - Apple's Web Push guidance requires VAPID identification, encrypted payloads and a visible notification; the Push API subscription endpoint is a capability URL and must be kept secret.
 - Existing notifications run synchronously in request handlers; there is no Celery/RQ-style background worker in the repository. Do not add a queue without evidence that the group fan-out or latency requires it.
 - The UI remains server-rendered Django templates with static JavaScript; no frontend build/test harness was found.
-- SMS opt-in is not currently persisted. Treat any assumption that all group members may receive SMS as unverified and do not expand SMS delivery until consent behavior is agreed and enforced.
+- Keep the user-confirmed SMS-consent step in registration unchanged; no separate SMS consent change is in this scope.
+
 
 ## Assumptions
 
 | Assumption | Status | Evidence |
 |---|---|---|
-| Web Push is additive to SMS/email and only for new group messages/replies initially. | Unverified; conservative plan choice | No product policy for push triggers exists in the repo. Confirm before implementation. |
-| Push opt-in is separate from SMS consent. | Verified platform boundary | Browser push requires its own permission/subscription flow; the SMS checkbox is not stored in the user model or signup form. |
+| Existing SMS consent is handled during registration and remains unchanged. | Confirmed by user | User direction for this plan; this work does not add a separate consent model or gate tests on it. |
+| Initial Web Push triggers are new group messages and replies; invitations and event changes are test-only in this plan. | Confirmed in this exchange | User selected messages/replies as the first push scope; later requested the test sequence for invitations and event changes. |
 | iOS support means installed Home Screen web apps on iOS/iPadOS 16.4+. | Verified | [Apple Web Push documentation](https://developer.apple.com/documentation/usernotifications/sending-web-push-notifications-in-web-apps-and-browsers). |
 | Android support means a browser with Push API and Service Worker support, initially Android Chrome. | Verified for standards path; exact support matrix needs device QA | [Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API), [web.dev subscription guide](https://web.dev/articles/push-notifications-subscribing-a-user). |
 | Current small-group traffic can tolerate synchronous push fan-out. | Unverified | No group-size or provider-latency data found. Confirm before selecting this delivery path. |
 | A maintained Python Web Push library is available for the project's Python/Django versions. | Unverified; implementation task | Select and verify a maintained library before adding a dependency; avoid hand-writing encryption/protocol code. |
 
+
 ## Risk Analysis
 
 | Risk | Mitigation |
 |---|---|
-| SMS consent UI is not persisted or enforced; recipient tests could legitimize non-consensual delivery. | Resolve consent policy and storage/enforcement before adding assertions about SMS eligibility. Keep SMS and Web Push consent separate. |
 | iOS users expect notifications from an ordinary Safari tab. | Explain Home Screen installation and OS minimum in the opt-in UI; make unsupported states explicit and keep the site functional. |
 | Permission prompts are denied if shown unexpectedly. | Do not prompt on page load; request permission only after a clear user action explaining the benefit. |
 | Subscription endpoints or VAPID keys leak. | Store endpoint/keys server-side, protect registration/unsubscribe with login and CSRF, never log subscription secrets, and keep VAPID private key in environment secrets. |
@@ -100,46 +104,58 @@ On new group messages, target active members according to the existing admin/mem
 | Synchronous fan-out increases request latency for large groups. | Verify group sizes in Phase 0; if synchronous delivery is not bounded, plan a durable queue/outbox separately before rollout. |
 | User has multiple devices and receives duplicates. | Store one subscription per endpoint, support per-device unsubscribe, and test distinct endpoints; do not collapse all devices to one row per user. |
 
+
 ## Phased Implementation
 
-### Phase 0 — Confirm delivery contracts
-- [ ] Confirm message/reply notification triggers and whether push supplements existing channels.
-- [ ] Decide the SMS consent policy. If SMS requires consent, add persisted opt-in and enforce it at recipient selection before writing tests that treat a recipient as eligible.
-- [ ] Check representative group sizes and choose bounded synchronous delivery or a separately scoped durable queue.
-- **Exit:** recipient rules, consent boundaries and the latency approach are explicit.
+### Phase 0 — Confirm push delivery constraints
+- [ ] Confirm representative group sizes and verify bounded synchronous delivery is appropriate; add a separate queue/outbox design only if it is not.
+- [ ] Keep the user-confirmed registration SMS-consent flow unchanged; it is not a blocker or a consent-model work item in this plan.
+- **Exit:** initial Web Push triggers are group messages and replies; provider calls are bounded and best-effort.
 
-### Phase 1 — Cover existing messaging behavior
-- [ ] Add route-level tests for authorized admin/member message creation and persisted message direction/content.
-- [ ] Add reply tests for parent/receiver association and conversation visibility.
+### Phase 1 — Group-message tests
+- [ ] Add route-level tests for authorized admin/member message creation, persisted direction/content, and role-based recipient selection.
 - [ ] Add inbox/conversation audience tests for admins, members, and non-members.
-- [ ] Add invitation email tests with the locmem backend and SMS helper tests with a fake Twilio client.
-- [ ] After Phase 0, add recipient-matrix tests for active members and persisted SMS consent.
-- **Exit:** all external calls are mocked; the suite proves user-visible message/thread/access behavior and the decided notification audience.
+- [ ] Test SMS body/link formatting and credential-selection branches with a fake Twilio client.
+- **Exit:** group-message creation and visibility behavior pass without live Twilio requests.
 
-### Phase 2 — Add Web Push subscription lifecycle
+### Phase 2 — Invitation tests
+- [ ] Add admin-only invitation tests for existing users and new users, including resulting membership and invitation-link email content.
+- [ ] Use Django's locmem email backend; no test reaches SendGrid.
+- **Exit:** both invitation outcomes and their access boundary are covered.
+
+### Phase 3 — Event changes and group-message replies
+- [ ] Add event create/update behavior tests for changed fields and events scoped to their owning group.
+- [ ] Add reply tests for parent/receiver association, redirect target, and participant-only conversation visibility.
+- **Exit:** event edits and threaded replies have behavioral coverage; neither adds a Web Push trigger in this initial delivery scope.
+
+### Phase 4 — Add Web Push subscription lifecycle
 - [ ] Select a maintained Python Web Push library; verify Python compatibility, VAPID support, timeout/error behavior, and dependency maintenance.
 - [ ] Add environment-backed VAPID keys and deployment documentation; never commit private keys.
 - [ ] Add a root-scoped service worker, web manifest, feature detection, and an explicit enable/disable control.
 - [ ] Add authenticated, CSRF-protected registration and revocation endpoints and a per-endpoint subscription model.
 - [ ] Add tests for registration ownership, multiple devices, revoke behavior, and unsupported/denied permission states where browser automation permits.
-- **Exit:** a logged-in user can subscribe and revoke a device without changing SMS settings; unconfigured clients still use Drover normally.
+- **Exit:** a logged-in user can subscribe and revoke a device; unconfigured clients still use Drover normally.
 
-### Phase 3 — Deliver and verify message pushes
+### Phase 5 — Deliver and verify message pushes
 - [ ] Add a push sender service with minimal payload, same-origin click targets, bounded network calls, per-endpoint failure handling, and stale-subscription cleanup.
-- [ ] Integrate it with the Phase 0-approved message and reply recipient rules; exclude the sender.
-- [ ] Add tests for target selection, no send without a subscription, expired endpoints, provider failure isolation, and successful message persistence independent of push success.
+- [ ] Integrate it with group-message and reply recipient rules; exclude the sender.
+- [ ] Test target selection, no send without a subscription, expired endpoints, provider failure isolation, and message persistence independent of push success.
 - [ ] Manually verify permission/subscription, background display, unsubscribe, and click-through on Android Chrome and an iOS/iPadOS 16.4+ Home Screen web app over HTTPS.
 - **Exit:** Android Chrome and supported iOS Home Screen flows pass; unsupported or denied clients retain normal message/email/SMS behavior.
 
+
 ## Acceptance Criteria
 
-- The existing messaging tests cover create/reply/visibility/invitation paths without making real Twilio or SendGrid requests.
-- Tests for notification recipients assert the Phase 0-approved rules; no test treats an unpersisted signup checkbox as consent.
-- An authenticated user can store and revoke multiple device subscriptions; an unauthenticated user cannot register or revoke another user's subscription.
-- A push is sent only to approved recipients with active subscriptions, excludes the sender, and contains no private message body or phone number.
-- An expired subscription is removed; a transient push failure does not delete the already-saved group message or block delivery attempts to other subscriptions.
-- Push permission is requested only after explicit user action; an unsupported browser, denied permission, missing VAPID configuration, or no subscription does not break the regular app.
+- Group-message tests land first and use fake Twilio delivery; they verify message persistence and admin/member audience rules without network calls.
+- Invitation tests follow, use Django's locmem email backend, and cover existing-user membership mail and new-user invitation links.
+- Event-edit tests and group-message reply tests follow invitations; they verify persisted event changes, reply parent/receiver association, and conversation visibility.
+- Tests do not call Twilio or SendGrid, and do not treat `GroupMessage.status` as a delivery receipt.
+- Web Push is opt-in per device; registration/revocation is user-owned, and push targets only approved message/reply recipients with active subscriptions, excluding the sender.
+- Push payloads contain no private message body or phone number; click-through is same-origin.
+- Expired subscriptions are removed; an individual transient push failure neither rolls back the saved message nor stops attempts to other subscriptions.
+- Permission is requested only after explicit user action; unsupported browsers, denied permission, missing VAPID configuration, or no subscription do not break normal Drover flows.
 - Manual device verification documents Android Chrome and iOS/iPadOS Home Screen support limits; the UI does not claim support for ordinary iOS Safari tabs.
+
 
 ## Subjective Contract and Preview Gate
 
