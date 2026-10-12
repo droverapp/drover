@@ -24,9 +24,10 @@ test = [
     "coverage[toml]>=7.6",
     "django-coverage-plugin>=3.2.2",
     "inline-snapshot-django>=1.4.0",
-    "inline-snapshot[black]>=0.36.0",
+    "inline-snapshot>=0.36.0",
     "pytest>=8",
     "pytest-django>=4.14.0",
+    "ruff>=0.11.0",
 ]
 
 [tool.coverage.run]
@@ -43,4 +44,4 @@ DJANGO_SETTINGS_MODULE = "drover.settings"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 
 [tool.inline-snapshot]
-format-command = "black --stdin-filename {filename} -"
+format-command = "ruff format --stdin-filename {filename} -"

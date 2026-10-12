@@ -41,17 +41,11 @@
           {{ event.going_count }} Going · {{ event.not_going_count }} Not Going · {{ event.maybe_count }} Maybe
         </p>
         <div class="rsvp-toggle">
-          <form method="post" action="{% url 'rsvp_event' group_id=group.id event_id=event.id status='going' %}" style="display:inline">
+          <form method="post" action="{% url 'rsvp_event' group_id=group.id event_id=event.id %}" style="display:inline">
             {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-outline-primary">Going</button>
-          </form>
-          <form method="post" action="{% url 'rsvp_event' group_id=group.id event_id=event.id status='maybe' %}" style="display:inline">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-outline-warning">Maybe</button>
-          </form>
-          <form method="post" action="{% url 'rsvp_event' group_id=group.id event_id=event.id status='not_going' %}" style="display:inline">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-outline-secondary">Not Going</button>
+            <button type="submit" name="status" value="going" class="btn btn-sm btn-outline-primary">Going</button>
+            <button type="submit" name="status" value="maybe" class="btn btn-sm btn-outline-warning">Maybe</button>
+            <button type="submit" name="status" value="not_going" class="btn btn-sm btn-outline-secondary">Not Going</button>
           </form>
         </div>
     {% endfor %}

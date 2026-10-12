@@ -156,20 +156,18 @@ def view_group(request, group_id):
     ).first()
     if group_member:
         group_members = group.members.filter(is_deleted=False).all()
-        # Annotate counts + the user's own RSVP in one SQL query; the
-        # template then uses plain attribute access (no dict lookups).
         events = (
             group.events.all()
             .order_by("event_time")
             .annotate(
                 going_count=Count(
-                    "rsvps", filter=Q(rsvps__status=GroupEventRSVP.GOING)
+                    "rsvps", filter=Q(rsvps__status=GroupEventRSVP.Status.GOING)
                 ),
                 not_going_count=Count(
-                    "rsvps", filter=Q(rsvps__status=GroupEventRSVP.NOT_GOING)
+                    "rsvps", filter=Q(rsvps__status=GroupEventRSVP.Status.NOT_GOING)
                 ),
                 maybe_count=Count(
-                    "rsvps", filter=Q(rsvps__status=GroupEventRSVP.MAYBE)
+                    "rsvps", filter=Q(rsvps__status=GroupEventRSVP.Status.MAYBE)
                 ),
                 my_rsvp_display=Subquery(
                     GroupEventRSVP.objects.filter(
@@ -178,15 +176,15 @@ def view_group(request, group_id):
                     .annotate(
                         display=Case(
                             When(
-                                status=GroupEventRSVP.GOING,
+                                status=GroupEventRSVP.Status.GOING,
                                 then=Value("Going"),
                             ),
                             When(
-                                status=GroupEventRSVP.NOT_GOING,
+                                status=GroupEventRSVP.Status.NOT_GOING,
                                 then=Value("Not Going"),
                             ),
                             When(
-                                status=GroupEventRSVP.MAYBE,
+                                status=GroupEventRSVP.Status.MAYBE,
                                 then=Value("Maybe"),
                             ),
                             default=Value(""),
@@ -609,16 +607,14 @@ def conversation_details(request, group_id, message_id):
 
 
 @login_required
-def rsvp_event(request, group_id, event_id, status):
-    """Toggle an RSVP for a group event.
-
-    URL status is lowercase ("going", "not_going", "maybe"); the model stores
-    uppercase ("GOING", "NOT_GOING", "MAYBE"). Non-members get 403.
-    """
-    valid_statuses = {c[0] for c in GroupEventRSVP.STATUS_CHOICES}
-    status = status.upper()
-    if status not in valid_statuses:
-        return redirect("view_group", group_id=group_id)
+def rsvp_event(request, group_id, event_id):
+    status = (
+        request.POST.get("status")
+        if request.method == "POST"
+        else request.GET.get("status")
+    )
+    if status:
+        status = status.upper()
 
     group = Group.objects.filter(id=group_id).first()
     if not group:
@@ -635,12 +631,14 @@ def rsvp_event(request, group_id, event_id, status):
         return HttpResponseForbidden()
 
     if request.method == "POST":
-        existing = GroupEventRSVP.objects.filter(event=event, user=request.user).first()
-        if existing and existing.status == status:
-            existing.delete()
-        else:
-            GroupEventRSVP.objects.update_or_create(
-                event=event, user=request.user, defaults={"status": status}
-            )
+        if status not in GroupEventRSVP.Status.values:
+            return redirect("view_group", group_id=group_id)
+
+        rsvp, created = GroupEventRSVP.objects.get_or_create(
+            event=event, user=request.user, defaults={"status": status}
+        )
+        if not created and rsvp.status != status:
+            rsvp.status = status
+            rsvp.save(update_fields=["status", "updated_at"])
 
     return redirect("view_group", group_id=group_id)
