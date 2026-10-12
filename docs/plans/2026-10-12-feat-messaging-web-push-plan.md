@@ -2,7 +2,7 @@
 title: "feat: message delivery tests and opt-in Web Push"
 type: plan
 date: 2026-10-12
-status: complete
+status: in_progress
 confidence: medium
 ---
 

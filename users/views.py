@@ -73,8 +73,7 @@ def dashboard(request):
             "owned_groups": owned_groups,
             "member_groups": member_groups,
             "webpush_enabled": bool(
-                settings.WEBPUSH_VAPID_PUBLIC_KEY
-                and settings.WEBPUSH_VAPID_PRIVATE_KEY
+                settings.WEBPUSH_VAPID_PUBLIC_KEY and settings.WEBPUSH_VAPID_PRIVATE_KEY
             ),
             "webpush_public_key": settings.WEBPUSH_VAPID_PUBLIC_KEY,
         },

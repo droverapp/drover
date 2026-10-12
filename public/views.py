@@ -1,5 +1,7 @@
+from pathlib import Path
+
 from django.contrib.staticfiles import finders
-from django.http import FileResponse, Http404, HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
 from twilio.twiml.messaging_response import MessagingResponse
@@ -10,11 +12,11 @@ def service_worker(request):
     if not service_worker_path:
         raise Http404
 
-    response = FileResponse(
-        open(service_worker_path, "rb"), content_type="application/javascript"
+    return HttpResponse(
+        Path(service_worker_path).read_bytes(),
+        content_type="application/javascript",
+        headers={"Cache-Control": "no-cache"},
     )
-    response["Cache-Control"] = "no-cache"
-    return response
 
 
 def home(request):
