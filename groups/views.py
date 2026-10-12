@@ -2,15 +2,31 @@ import datetime
 import uuid
 import bleach
 
-from django.db.models import Q, Count, OuterRef, Subquery
-from django.http import Http404
+from django.db.models import (
+    Q,
+    Count,
+    OuterRef,
+    Subquery,
+    Case,
+    When,
+    Value,
+    CharField,
+)
+from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from users.models import User
 
-from .models import Group, GroupMember, GroupEvent, GroupMessage, GroupMessageImage
+from .models import (
+    Group,
+    GroupMember,
+    GroupEvent,
+    GroupEventRSVP,
+    GroupMessage,
+    GroupMessageImage,
+)
 from .emails import send_invitation_email
 from .sms import send_text_message
 from shortener.utils import generate_short_url
@@ -21,13 +37,18 @@ def create_group(request):
     if request.method == "POST":
         group = Group(
             name=request.POST["name"],
-            description=bleach.clean(request.POST["description"], tags=["p", "strong", "i", "u", "b", "em", "a"]),
-            #image=request.FILES["group_image"],
+            description=bleach.clean(
+                request.POST["description"],
+                tags=["p", "strong", "i", "u", "b", "em", "a"],
+            ),
+            # image=request.FILES["group_image"],
             venue=request.POST["venue"],
             owner=request.user,
         )
         group.save()
-        group_member = GroupMember(user=request.user, is_admin=True, owner=True, group=group)
+        group_member = GroupMember(
+            user=request.user, is_admin=True, owner=True, group=group
+        )
         group_member.save()
         for index in range(len(request.POST.getlist("event_name[]"))):
             event_time = datetime.datetime.strptime(
@@ -58,11 +79,14 @@ def edit_group(request, group_id):
         group_members = group.members.filter(is_deleted=False).all()
         events = group.events.all().order_by("event_time")
         if request.method == "POST":
-            #group.image = request.FILES["group_image"]
-            group.description = bleach.clean(request.POST["description"], tags=["p", "strong", "i", "u", "b", "em", "a"])
+            # group.image = request.FILES["group_image"]
+            group.description = bleach.clean(
+                request.POST["description"],
+                tags=["p", "strong", "i", "u", "b", "em", "a"],
+            )
             group.venue = request.POST["venue"]
             group.save()
- 
+
             for index in range(len(request.POST.getlist("event_name[]"))):
                 if request.POST.getlist("event_time[]")[index]:
                     event_time = datetime.datetime.strptime(
@@ -87,9 +111,7 @@ def edit_group(request, group_id):
                         venue_address=request.POST.getlist("event_venue_address[]")[
                             index
                         ],
-                        venue_map_link=request.POST.getlist("event_venue_map[]")[
-                            index
-                        ],
+                        venue_map_link=request.POST.getlist("event_venue_map[]")[index],
                         group=group,
                     )
                     event.save()
@@ -103,22 +125,20 @@ def edit_group(request, group_id):
                     event = get_object_or_404(GroupEvent, id=event_id, group=group)
                     event.name = request.POST.getlist("event_name[]")[index]
                     event.event_time = event_time
-                    event.instructions = request.POST.getlist(
-                        "event_instructions[]"
-                    )[index]
-                    event.venue_name = request.POST.getlist(
-                        "event_venue_name[]"
-                    )[index]
-                    event.venue_address = request.POST.getlist(
-                        "event_venue_address[]"
-                    )[index]
-                    event.venue_map_link = request.POST.getlist(
-                        "event_venue_map[]"
-                    )[index]
+                    event.instructions = request.POST.getlist("event_instructions[]")[
+                        index
+                    ]
+                    event.venue_name = request.POST.getlist("event_venue_name[]")[index]
+                    event.venue_address = request.POST.getlist("event_venue_address[]")[
+                        index
+                    ]
+                    event.venue_map_link = request.POST.getlist("event_venue_map[]")[
+                        index
+                    ]
                     event.save()
- 
+
             # Edit Old Events if changed
- 
+
             return redirect("view_group", group.id)
         return render(
             request,
@@ -136,7 +156,45 @@ def view_group(request, group_id):
     ).first()
     if group_member:
         group_members = group.members.filter(is_deleted=False).all()
-        events = group.events.all().order_by("event_time")
+        events = (
+            group.events.all()
+            .order_by("event_time")
+            .annotate(
+                going_count=Count(
+                    "rsvps", filter=Q(rsvps__status=GroupEventRSVP.Status.GOING)
+                ),
+                not_going_count=Count(
+                    "rsvps", filter=Q(rsvps__status=GroupEventRSVP.Status.NOT_GOING)
+                ),
+                maybe_count=Count(
+                    "rsvps", filter=Q(rsvps__status=GroupEventRSVP.Status.MAYBE)
+                ),
+                my_rsvp_display=Subquery(
+                    GroupEventRSVP.objects.filter(
+                        event=OuterRef("pk"), user=request.user
+                    )
+                    .annotate(
+                        display=Case(
+                            When(
+                                status=GroupEventRSVP.Status.GOING,
+                                then=Value("Going"),
+                            ),
+                            When(
+                                status=GroupEventRSVP.Status.NOT_GOING,
+                                then=Value("Not Going"),
+                            ),
+                            When(
+                                status=GroupEventRSVP.Status.MAYBE,
+                                then=Value("Maybe"),
+                            ),
+                            default=Value(""),
+                            output_field=CharField(),
+                        )
+                    )
+                    .values("display")[:1]
+                ),
+            )
+        )
         return render(
             request,
             "view_group.html",
@@ -246,11 +304,10 @@ def send_message(request, group_id):
             if request.FILES.get("message-image", ""):
                 print("I am there")
                 message_image = GroupMessageImage(
-                    group_message=message,
-                    image=request.FILES["message-image"]
+                    group_message=message, image=request.FILES["message-image"]
                 )
                 message_image.save()
-            
+
             message_receivers = GroupMember.objects.filter(
                 group=group, is_admin=message_type == "MA", is_deleted=False
             )
@@ -273,7 +330,9 @@ def send_message(request, group_id):
                 )
             return redirect("view_group", group.id)
         return render(
-            request, "compose_message.html", {"is_admin": current_dr_group_member.is_admin}
+            request,
+            "compose_message.html",
+            {"is_admin": current_dr_group_member.is_admin},
         )
     return redirect("dashboard")
 
@@ -467,13 +526,9 @@ def message_details(request, group_id, message_id):
             )
             return redirect("view_group", group.id)
         if current_group_member.is_admin:
-            message = GroupMessage.objects.filter(
-                group=group, id=message_id
-            ).first()
+            message = GroupMessage.objects.filter(group=group, id=message_id).first()
         else:
-            message = GroupMessage.objects.filter(
-                group=group, id=message_id
-            ).first()
+            message = GroupMessage.objects.filter(group=group, id=message_id).first()
 
         return render(
             request, "message_details.html", {"group": group, "message": message}
@@ -521,9 +576,7 @@ def conversation_details(request, group_id, message_id):
                 receiver.contact_number, request.POST["reply"], message_url
             )
             return redirect("conversation_details", group_id, message_id)
-        message = GroupMessage.objects.filter(
-            group=group, id=message_id
-        ).first()
+        message = GroupMessage.objects.filter(group=group, id=message_id).first()
         conversations = (
             GroupMessage.objects.filter(group=group, reply_to_id=message_id)
             .filter(Q(sender=request.user) | Q(receiver=request.user))
@@ -551,3 +604,41 @@ def conversation_details(request, group_id, message_id):
             },
         )
     return redirect("dashboard")
+
+
+@login_required
+def rsvp_event(request, group_id, event_id):
+    status = (
+        request.POST.get("status")
+        if request.method == "POST"
+        else request.GET.get("status")
+    )
+    if status:
+        status = status.upper()
+
+    group = Group.objects.filter(id=group_id).first()
+    if not group:
+        return redirect("dashboard")
+
+    event = GroupEvent.objects.filter(id=event_id, group=group).first()
+    if not event:
+        return redirect("view_group", group_id=group_id)
+
+    group_member = GroupMember.objects.filter(
+        group=group, user=request.user, is_deleted=False
+    ).first()
+    if not group_member:
+        return HttpResponseForbidden()
+
+    if request.method == "POST":
+        if status not in GroupEventRSVP.Status.values:
+            return redirect("view_group", group_id=group_id)
+
+        rsvp, created = GroupEventRSVP.objects.get_or_create(
+            event=event, user=request.user, defaults={"status": status}
+        )
+        if not created and rsvp.status != status:
+            rsvp.status = status
+            rsvp.save(update_fields=["status", "updated_at"])
+
+    return redirect("view_group", group_id=group_id)
