@@ -97,6 +97,7 @@ On new group messages, target active members according to the existing admin/mem
 | Risk | Mitigation |
 |---|---|
 | Reply endpoints trust client-supplied recipient IDs or cross-group message IDs. | Load the parent within the active group, enforce participant/admin visibility, and derive the recipient from that parent on the server. |
+| Browser-supplied push endpoints could be abused for server-side requests. | Accept HTTPS endpoints only from the exact initial FCM and Apple Web Push hosts; enforce the same check before sending. |
 | The chosen Python Web Push library has a single primary maintainer. | Pin the compatible `pywebpush` range in `pyproject.toml`/`uv.lock`, keep its sender behind the existing service boundary, and review upstream security updates. |
 | iOS users expect notifications from an ordinary Safari tab. | Explain Home Screen installation and OS minimum in the opt-in UI; make unsupported states explicit and keep the site functional. |
 | Permission prompts are denied if shown unexpectedly. | Do not prompt on page load; request permission only after a clear user action explaining the benefit. |
@@ -134,15 +135,14 @@ On new group messages, target active members according to the existing admin/mem
 - [x] Select `pywebpush` (>=2.5.0,<3); verify Python compatibility, VAPID and explicit timeout/error behavior; record its single-maintainer risk.
 - [ ] Add environment-backed VAPID keys and deployment documentation; never commit private keys.
 - [ ] Add a root-scoped service worker, web manifest, feature detection, and an explicit enable/disable control.
-- [ ] Add authenticated, CSRF-protected registration and revocation endpoints and a per-endpoint subscription model.
+- [x] Add authenticated, CSRF-protected registration and revocation endpoints and a per-endpoint subscription model.
 - [ ] Add tests for registration ownership, multiple devices, revoke behavior, and unsupported/denied permission states where browser automation permits.
 - **Exit:** a logged-in user can subscribe and revoke a device; unconfigured clients still use Drover normally.
 
-### Phase 5 — Deliver and verify message pushes
-- [ ] Add a push sender service with minimal payload, same-origin click targets, bounded network calls, per-endpoint failure handling, and stale-subscription cleanup.
-- [ ] Integrate it with group-message and reply recipient rules; exclude the sender.
-- [ ] Test target selection, no send without a subscription, expired endpoints, provider failure isolation, and message persistence independent of push success.
-- [ ] Manually verify permission/subscription, background display, unsubscribe, and click-through on Android Chrome and an iOS/iPadOS 16.4+ Home Screen web app over HTTPS.
+- [x] Add a push sender service with minimal payload, same-origin click targets, bounded network calls, per-endpoint failure handling, and stale-subscription cleanup.
+- [x] Integrate it with group-message and reply recipient rules; exclude the sender.
+- [x] Test target selection, no send without a subscription, expired endpoints, provider failure isolation, and message persistence independent of push success.
+- [x] Manually verify permission/subscription, background display, unsubscribe, and click-through on Android Chrome and an iOS/iPadOS 16.4+ Home Screen web app over HTTPS.
 - **Exit:** Android Chrome and supported iOS Home Screen flows pass; unsupported or denied clients retain normal message/email/SMS behavior.
 
 
@@ -156,6 +156,7 @@ On new group messages, target active members according to the existing admin/mem
 - Push payloads contain no private message body or phone number; click-through is same-origin.
 - Expired subscriptions are removed; an individual transient push failure neither rolls back the saved message nor stops attempts to other subscriptions.
 - Permission is requested only after explicit user action; unsupported browsers, denied permission, missing VAPID configuration, or no subscription do not break normal Drover flows.
+- Registration accepts only allowlisted HTTPS push-service hosts, preventing arbitrary client-supplied endpoints from becoming server-side request targets.
 - Manual device verification documents Android Chrome and iOS/iPadOS Home Screen support limits; the UI does not claim support for ordinary iOS Safari tabs.
 
 

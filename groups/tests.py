@@ -543,8 +543,11 @@ class GroupMessageFlowTests(TestCase):
         self.send_url = reverse("send_message", kwargs={"group_id": self.group.id})
         self.inbox_url = reverse("inbox", kwargs={"group_id": self.group.id})
 
+    @patch("groups.views.send_web_push_to_user")
     @patch("groups.views.send_text_message")
-    def test_admin_message_persists_and_targets_active_members(self, send_sms):
+    def test_admin_message_persists_and_targets_active_members(
+        self, send_sms, send_push
+    ):
         self.client.force_login(self.admin)
         response = self.client.post(self.send_url, {"message": "Meeting at noon"})
 
@@ -559,9 +562,21 @@ class GroupMessageFlowTests(TestCase):
         for sent_call in send_sms.call_args_list:
             self.assertEqual(sent_call.args[1], "Meeting at noon")
             self.assertTrue(sent_call.args[2].startswith("http://testserver/"))
+        self.assertCountEqual(
+            [push_call.args[0] for push_call in send_push.call_args_list],
+            [self.member, self.other_member],
+        )
+        for push_call in send_push.call_args_list:
+            payload = push_call.args[1]
+            self.assertEqual(payload["title"], "New Drover message")
+            self.assertEqual(payload["body"], "Open Drover to view the message.")
+            self.assertNotIn("Meeting at noon", payload["body"])
 
+    @patch("groups.views.send_web_push_to_user")
     @patch("groups.views.send_text_message")
-    def test_member_message_persists_and_targets_active_admins(self, send_sms):
+    def test_member_message_persists_and_targets_active_admins(
+        self, send_sms, send_push
+    ):
         self.client.force_login(self.member)
         response = self.client.post(self.send_url, {"message": "Need approval"})
 
@@ -572,6 +587,10 @@ class GroupMessageFlowTests(TestCase):
         self.assertCountEqual(
             [call.args[0] for call in send_sms.call_args_list],
             ["+12025550101", "+12025550102"],
+        )
+        self.assertCountEqual(
+            [push_call.args[0] for push_call in send_push.call_args_list],
+            [self.admin, self.second_admin],
         )
 
     def test_member_inbox_shows_own_messages_and_admin_broadcasts_only(self):
@@ -622,8 +641,9 @@ class GroupMessageFlowTests(TestCase):
             [own.pk, another_member.pk],
         )
 
+    @patch("groups.views.send_web_push_to_user")
     @patch("groups.views.send_text_message")
-    def test_nonmember_cannot_send_or_read_inbox(self, send_sms):
+    def test_nonmember_cannot_send_or_read_inbox(self, send_sms, send_push):
         outsider = User.objects.create_user(username="outsider", password="pw")
         self.client.force_login(outsider)
 
@@ -634,6 +654,46 @@ class GroupMessageFlowTests(TestCase):
         self.assertEqual(inbox_response.status_code, 302)
         self.assertFalse(GroupMessage.objects.filter(group=self.group).exists())
         send_sms.assert_not_called()
+        send_push.assert_not_called()
+
+    @patch("groups.views.send_text_message")
+    def test_push_provider_failure_does_not_interrupt_group_message(self, send_sms):
+        from types import SimpleNamespace
+
+        from pywebpush import WebPushException
+
+        from users.models import WebPushSubscription
+
+        WebPushSubscription.objects.create(
+            user=self.member,
+            endpoint="https://fcm.googleapis.com/fcm/send/device-one",
+            p256dh="public-key",
+            auth="auth-key",
+        )
+        self.client.force_login(self.admin)
+
+        with (
+            override_settings(
+                WEBPUSH_VAPID_PUBLIC_KEY="public-vapid-key",
+                WEBPUSH_VAPID_PRIVATE_KEY="private-vapid-key",
+            ),
+            patch(
+                "users.push.webpush",
+                side_effect=WebPushException(
+                    "busy", response=SimpleNamespace(status_code=503)
+                ),
+            ) as webpush_mock,
+        ):
+            response = self.client.post(self.send_url, {"message": "Saved anyway"})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            GroupMessage.objects.filter(
+                group=self.group, sender=self.admin, message="Saved anyway"
+            ).exists()
+        )
+        self.assertEqual(webpush_mock.call_count, 1)
+        self.assertEqual(send_sms.call_count, 2)
 
     def test_sms_helper_uses_account_token_and_formats_link(self):
         with (
@@ -790,8 +850,11 @@ class GroupMessageReplyTests(TestCase):
             kwargs={"group_id": (group or self.group).id, "message_id": message.id},
         )
 
+    @patch("groups.views.send_web_push_to_user")
     @patch("groups.views.send_text_message")
-    def test_member_reply_uses_announcement_sender_not_posted_receiver(self, send_sms):
+    def test_member_reply_uses_announcement_sender_not_posted_receiver(
+        self, send_sms, send_push
+    ):
         self.client.force_login(self.member)
         response = self.client.post(
             self._url("conversation_details", self.admin_message),
@@ -809,6 +872,14 @@ class GroupMessageReplyTests(TestCase):
         self.assertEqual(reply.message_type, "MA")
         send_sms.assert_called_once()
         self.assertEqual(send_sms.call_args.args[0], self.admin.contact_number)
+        self.assertCountEqual(
+            [push_call.args[0] for push_call in send_push.call_args_list],
+            [self.admin],
+        )
+        self.assertEqual(
+            send_push.call_args.args[1]["url"],
+            self._url("conversation_details", self.admin_message),
+        )
 
         response = self.client.get(
             self._url("conversation_details", self.admin_message)
@@ -816,8 +887,9 @@ class GroupMessageReplyTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(reply, response.context["conversations"])
 
+    @patch("groups.views.send_web_push_to_user")
     @patch("groups.views.send_text_message")
-    def test_admin_reply_targets_member_author(self, send_sms):
+    def test_admin_reply_targets_member_author(self, send_sms, send_push):
         self.client.force_login(self.admin)
         response = self.client.post(
             self._url("conversation_details", self.member_message),
@@ -833,9 +905,16 @@ class GroupMessageReplyTests(TestCase):
         self.assertEqual(reply.receiver, self.member)
         self.assertEqual(reply.message_type, "AM")
         self.assertEqual(send_sms.call_args.args[0], self.member.contact_number)
+        send_push.assert_called_once()
+        self.assertEqual(send_push.call_args.args[0], self.member)
+        self.assertEqual(
+            send_push.call_args.args[1]["url"],
+            self._url("conversation_details", self.member_message),
+        )
 
+    @patch("groups.views.send_web_push_to_user")
     @patch("groups.views.send_text_message")
-    def test_legacy_message_details_reply_uses_parent_author(self, send_sms):
+    def test_legacy_message_details_reply_uses_parent_author(self, send_sms, send_push):
         self.client.force_login(self.admin)
         response = self.client.post(
             self._url("message_details", self.member_message),
@@ -846,9 +925,18 @@ class GroupMessageReplyTests(TestCase):
         reply = GroupMessage.objects.get(reply_to=self.member_message)
         self.assertEqual(reply.receiver, self.member)
         self.assertEqual(send_sms.call_args.args[0], self.member.contact_number)
+        send_push.assert_called_once()
+        self.assertEqual(send_push.call_args.args[0], self.member)
+        self.assertEqual(
+            send_push.call_args.args[1]["url"],
+            self._url("conversation_details", self.member_message),
+        )
 
+    @patch("groups.views.send_web_push_to_user")
     @patch("groups.views.send_text_message")
-    def test_nonparticipant_cannot_view_or_reply_to_private_thread(self, send_sms):
+    def test_nonparticipant_cannot_view_or_reply_to_private_thread(
+        self, send_sms, send_push
+    ):
         self.client.force_login(self.other_member)
         url = self._url("conversation_details", self.member_message)
 
@@ -869,9 +957,11 @@ class GroupMessageReplyTests(TestCase):
             ).exists()
         )
         send_sms.assert_not_called()
+        send_push.assert_not_called()
 
+    @patch("groups.views.send_web_push_to_user")
     @patch("groups.views.send_text_message")
-    def test_cannot_reply_to_message_from_another_group(self, send_sms):
+    def test_cannot_reply_to_message_from_another_group(self, send_sms, send_push):
         other_group = Group.objects.create(name="Private", owner=self.admin)
         foreign_message = GroupMessage.objects.create(
             group=other_group,
@@ -892,3 +982,4 @@ class GroupMessageReplyTests(TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertFalse(GroupMessage.objects.filter(reply_to=foreign_message).exists())
         send_sms.assert_not_called()
+        send_push.assert_not_called()

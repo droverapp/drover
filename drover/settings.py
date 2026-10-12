@@ -159,6 +159,13 @@ TWILIO_ACCOUNT_SID = env.str("TWILIO_ACCOUNT_SID", default=TWILIO_SSID)
 TWILIO_API_KEY = env.str("TWILIO_API_KEY", default="")
 TWILIO_API_SECRET = env.str("TWILIO_API_SECRET", default="")
 
+# Web Push VAPID key pair; empty keys disable browser notifications.
+WEBPUSH_VAPID_PUBLIC_KEY = env.str("WEBPUSH_VAPID_PUBLIC_KEY", default="")
+WEBPUSH_VAPID_PRIVATE_KEY = env.str("WEBPUSH_VAPID_PRIVATE_KEY", default="")
+WEBPUSH_VAPID_SUBJECT = env.str(
+    "WEBPUSH_VAPID_SUBJECT", default="mailto:kathleen@droverapp.org"
+)
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/

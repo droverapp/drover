@@ -20,6 +20,7 @@ from django.views.decorators.http import require_http_methods
 
 from shortener.utils import generate_short_url
 from users.models import User
+from users.push import send_web_push_to_user
 
 from .emails import send_invitation_email
 from .models import (
@@ -310,22 +311,22 @@ def send_message(request, group_id):
             message_receivers = GroupMember.objects.filter(
                 group=group, is_admin=message_type == "MA", is_deleted=False
             )
-            message_url = "{}://{}{}".format(
-                request.scheme,
-                request.get_host(),
-                generate_short_url(
-                    reverse(
-                        "conversation_details",
-                        kwargs={
-                            "group_id": group.id,
-                            "message_id": message.id,
-                        },
-                    )
-                ),
+            conversation_path = reverse(
+                "conversation_details",
+                kwargs={"group_id": group.id, "message_id": message.id},
             )
+            message_url = f"{request.scheme}://{request.get_host()}{generate_short_url(conversation_path)}"
             for receiver in message_receivers:
                 send_text_message(
                     receiver.user.contact_number, request.POST["message"], message_url
+                )
+                send_web_push_to_user(
+                    receiver.user,
+                    {
+                        "title": "New Drover message",
+                        "body": "Open Drover to view the message.",
+                        "url": conversation_path,
+                    },
                 )
             return redirect("view_group", group.id)
         return render(
@@ -527,6 +528,17 @@ def message_details(request, group_id, message_id):
         send_text_message(
             reply_recipient.contact_number, request.POST["reply"], message_url
         )
+        send_web_push_to_user(
+            reply_recipient,
+            {
+                "title": "New Drover message",
+                "body": "You have a new reply in Drover.",
+                "url": reverse(
+                    "conversation_details",
+                    kwargs={"group_id": group.id, "message_id": message.id},
+                ),
+            },
+        )
         return redirect("view_group", group.id)
 
     return render(
@@ -578,6 +590,17 @@ def conversation_details(request, group_id, message_id):
         )
         send_text_message(
             reply_recipient.contact_number, request.POST["reply"], message_url
+        )
+        send_web_push_to_user(
+            reply_recipient,
+            {
+                "title": "New Drover message",
+                "body": "You have a new reply in Drover.",
+                "url": reverse(
+                    "conversation_details",
+                    kwargs={"group_id": group.id, "message_id": message_id},
+                ),
+            },
         )
         return redirect("conversation_details", group_id, message_id)
 

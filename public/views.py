@@ -1,7 +1,20 @@
-from django.http import HttpResponse
-from django.shortcuts import render, redirect
+from django.contrib.staticfiles import finders
+from django.http import FileResponse, Http404, HttpResponse
+from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
 from twilio.twiml.messaging_response import MessagingResponse
+
+
+def service_worker(request):
+    service_worker_path = finders.find("service-worker.js")
+    if not service_worker_path:
+        raise Http404
+
+    response = FileResponse(
+        open(service_worker_path, "rb"), content_type="application/javascript"
+    )
+    response["Cache-Control"] = "no-cache"
+    return response
 
 
 def home(request):
@@ -26,7 +39,7 @@ def sms_reply(request):
         resp = MessagingResponse()
 
         # Add a message
-        message = resp.message(
+        resp.message(
             "Do Not Reply via SMS. Please visit the link given in previous message to send a reply"
         )
 
