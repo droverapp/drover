@@ -133,17 +133,18 @@ On new group messages, target active members according to the existing admin/mem
 
 ### Phase 4 — Add Web Push subscription lifecycle
 - [x] Select `pywebpush` (>=2.5.0,<3); verify Python compatibility, VAPID and explicit timeout/error behavior; record its single-maintainer risk.
-- [ ] Add environment-backed VAPID keys and deployment documentation; never commit private keys.
-- [ ] Add a root-scoped service worker, web manifest, feature detection, and an explicit enable/disable control.
+- [x] Add environment-backed VAPID keys and deployment documentation; never commit private keys.
+- [x] Add a root-scoped service worker, web manifest, feature detection, and an explicit enable/disable control.
 - [x] Add authenticated, CSRF-protected registration and revocation endpoints and a per-endpoint subscription model.
-- [ ] Add tests for registration ownership, multiple devices, revoke behavior, and unsupported/denied permission states where browser automation permits.
+- [x] Add tests for registration ownership, multiple devices, revoke behavior, and unsupported/denied permission states where browser automation permits.
 - **Exit:** a logged-in user can subscribe and revoke a device; unconfigured clients still use Drover normally.
 
 - [x] Add a push sender service with minimal payload, same-origin click targets, bounded network calls, per-endpoint failure handling, and stale-subscription cleanup.
 - [x] Integrate it with group-message and reply recipient rules; exclude the sender.
 - [x] Test target selection, no send without a subscription, expired endpoints, provider failure isolation, and message persistence independent of push success.
-- [x] Manually verify permission/subscription, background display, unsubscribe, and click-through on Android Chrome and an iOS/iPadOS 16.4+ Home Screen web app over HTTPS.
-- **Exit:** Android Chrome and supported iOS Home Screen flows pass; unsupported or denied clients retain normal message/email/SMS behavior.
+- [x] Backend verification: service worker serves (`Content-Type: application/javascript`), dashboard toggle renders with `data-enabled`, and Django checks + 47 tests pass.
+- [ ] Manually verify permission/subscription, background display, unsubscribe, and click-through on Android Chrome and an iOS/iPadOS 16.4+ Home Screen web app over HTTPS. Recorded device-verification blocker: no iOS/Android hardware is available in this environment; this gate stays on the draft until manual device QA is possible.
+- **Exit:** backend verified; Android Chrome and iOS Home Screen manual verification pending device access.
 
 
 ## Acceptance Criteria
