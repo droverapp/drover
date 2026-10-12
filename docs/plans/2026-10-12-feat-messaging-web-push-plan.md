@@ -89,7 +89,7 @@ On new group messages, target active members according to the existing admin/mem
 | iOS support means installed Home Screen web apps on iOS/iPadOS 16.4+. | Verified | [Apple Web Push documentation](https://developer.apple.com/documentation/usernotifications/sending-web-push-notifications-in-web-apps-and-browsers). |
 | Android support means a browser with Push API and Service Worker support, initially Android Chrome. | Verified for standards path; exact support matrix needs device QA | [Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API), [web.dev subscription guide](https://web.dev/articles/push-notifications-subscribing-a-user). |
 | Current small-group traffic can tolerate synchronous push fan-out. | Unverified | No group-size or provider-latency data found. Confirm before selecting this delivery path. |
-| A maintained Python Web Push library is available for the project's Python/Django versions. | Unverified; implementation task | Select and verify a maintained library before adding a dependency; avoid hand-writing encryption/protocol code. |
+| `pywebpush` 2.5.0 supports this project's Python range and bounded VAPID sends. | Verified; single-maintainer risk accepted for this draft | PyPI requires Python >=3.10, release uploaded 2026-08-30, and the API accepts an explicit timeout; use a locked <3 range and monitor upstream. |
 
 
 ## Risk Analysis
@@ -97,6 +97,7 @@ On new group messages, target active members according to the existing admin/mem
 | Risk | Mitigation |
 |---|---|
 | Reply endpoints trust client-supplied recipient IDs or cross-group message IDs. | Load the parent within the active group, enforce participant/admin visibility, and derive the recipient from that parent on the server. |
+| The chosen Python Web Push library has a single primary maintainer. | Pin the compatible `pywebpush` range in `pyproject.toml`/`uv.lock`, keep its sender behind the existing service boundary, and review upstream security updates. |
 | iOS users expect notifications from an ordinary Safari tab. | Explain Home Screen installation and OS minimum in the opt-in UI; make unsupported states explicit and keep the site functional. |
 | Permission prompts are denied if shown unexpectedly. | Do not prompt on page load; request permission only after a clear user action explaining the benefit. |
 | Subscription endpoints or VAPID keys leak. | Store endpoint/keys server-side, protect registration/unsubscribe with login and CSRF, never log subscription secrets, and keep VAPID private key in environment secrets. |
@@ -130,7 +131,7 @@ On new group messages, target active members according to the existing admin/mem
 - **Exit:** event edits and threaded replies have behavioral coverage; neither adds a Web Push trigger in this initial delivery scope.
 
 ### Phase 4 — Add Web Push subscription lifecycle
-- [ ] Select a maintained Python Web Push library; verify Python compatibility, VAPID support, timeout/error behavior, and dependency maintenance.
+- [x] Select `pywebpush` (>=2.5.0,<3); verify Python compatibility, VAPID and explicit timeout/error behavior; record its single-maintainer risk.
 - [ ] Add environment-backed VAPID keys and deployment documentation; never commit private keys.
 - [ ] Add a root-scoped service worker, web manifest, feature detection, and an explicit enable/disable control.
 - [ ] Add authenticated, CSRF-protected registration and revocation endpoints and a per-endpoint subscription model.
@@ -178,3 +179,5 @@ On new group messages, target active members according to the existing admin/mem
 - [MDN: Service Worker API](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API)
 - [web.dev: Subscribe a user to push notifications](https://web.dev/articles/push-notifications-subscribing-a-user)
 - [RFC 8030: Generic Event Delivery Using HTTP Push](https://datatracker.ietf.org/doc/html/rfc8030)
+- [PyPI: pywebpush 2.5.0](https://pypi.org/project/pywebpush/2.5.0/) — Python >=3.10; the release was uploaded 2026-08-30.
+- [pywebpush API](https://github.com/web-push-libs/pywebpush/blob/main/_autodocs/api-reference/webpush.md) — synchronous `webpush()` supports VAPID and an explicit requests timeout.

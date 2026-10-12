@@ -695,6 +695,7 @@ dependencies = [
     { name = "granian" },
     { name = "pillow" },
     { name = "psycopg", extra = ["binary"] },
+    { name = "pywebpush" },
     { name = "sendgrid" },
     { name = "twilio" },
     { name = "whitenoise" },
@@ -720,6 +721,7 @@ requires-dist = [
     { name = "granian", specifier = ">=1.7.6" },
     { name = "pillow", specifier = ">=11.1.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.5" },
+    { name = "pywebpush", specifier = ">=2.5.0,<3" },
     { name = "sendgrid", specifier = ">=6.11" },
     { name = "twilio", specifier = ">=9.0" },
     { name = "whitenoise", specifier = ">=6.9.0" },
@@ -904,6 +906,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/24/46/61c05c9ccb0548682580e1e47fe84b8338be8041f7d7c988b7b4eadb6c48/granian-2.8.4-cp315-cp315t-musllinux_1_1_x86_64.whl", hash = "sha256:2628902003bdb7830dae67dba301aa3457922beb06a66d090755f79c46801628", size = 5098768, upload-time = "2026-09-30T15:12:19.137Z" },
     { url = "https://files.pythonhosted.org/packages/ae/a4/b3f7b8010d71dc233bcb1a6bd9742153cf094da3b9d2f93a59a85690e6dc/granian-2.8.4-cp315-cp315t-win_amd64.whl", hash = "sha256:44d3a5fdd97b78cd9971244996486387b2a80f577b42703725e78681f36ea810", size = 3111688, upload-time = "2026-09-30T15:12:20.912Z" },
 ]
+
+[[package]]
+name = "http-ece"
+version = "1.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cryptography" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7c/af/249d1576653b69c20b9ac30e284b63bd94af6a175d72d87813235caf2482/http_ece-1.2.1.tar.gz", hash = "sha256:8c6ab23116bbf6affda894acfd5f2ca0fb8facbcbb72121c11c75c33e7ce8cff", size = 8830, upload-time = "2024-08-08T00:10:47.301Z" }
 
 [[package]]
 name = "idna"
@@ -1495,6 +1506,18 @@ wheels = [
 ]
 
 [[package]]
+name = "py-vapid"
+version = "1.9.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cryptography" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a3/ed/c648c8018fab319951764f4babe68ddcbbff7f2bbcd7ff7e531eac1788c8/py_vapid-1.9.4.tar.gz", hash = "sha256:a004023560cbc54e34fc06380a0580f04ffcc788e84fb6d19e9339eeb6551a28", size = 74750, upload-time = "2026-01-05T22:13:25.201Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7f/15/f9d0171e1ad863ca49e826d5afb6b50566f20dc9b4f76965096d3555ce9e/py_vapid-1.9.4-py2.py3-none-any.whl", hash = "sha256:f165a5bf90dcf966b226114f01f178f137579a09784c7f0628fa2f0a299741b6", size = 23912, upload-time = "2026-01-05T20:42:05.455Z" },
+]
+
+[[package]]
 name = "pycparser"
 version = "3.11"
 source = { registry = "https://pypi.org/simple" }
@@ -1556,6 +1579,22 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/56/fa/284e52a8c6dcbe25671f02d217bf2f85660db940088faf18ae7a05e97313/python_http_client-3.3.7.tar.gz", hash = "sha256:bf841ee45262747e00dec7ee9971dfb8c7d83083f5713596488d67739170cea0", size = 9377, upload-time = "2022-03-09T20:23:56.386Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/29/31/9b360138f4e4035ee9dac4fe1132b6437bd05751aaf1db2a2d83dc45db5f/python_http_client-3.3.7-py3-none-any.whl", hash = "sha256:ad371d2bbedc6ea15c26179c6222a78bc9308d272435ddf1d5c84f068f249a36", size = 8352, upload-time = "2022-03-09T20:23:54.862Z" },
+]
+
+[[package]]
+name = "pywebpush"
+version = "2.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "cryptography" },
+    { name = "http-ece" },
+    { name = "py-vapid" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/54/ff/db9efe7454d329bfa6fe433e0f881eb9d28489fc4b8427ee2fbaedc5f42b/pywebpush-2.5.0.tar.gz", hash = "sha256:8260f8e42d70ed95a3bd00527ffcb43b5b3df8983a4a48b059fe29b06dc3d92c", size = 28565, upload-time = "2026-08-29T21:57:11.062Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/65/fc/32c8902ce796e8b21c229fa50478fd70e2be2fe7c3ac2259771cf1d5aa07/pywebpush-2.5.0-py3-none-any.whl", hash = "sha256:b5f5d45024223a04e73fe17f7a8e62540f35bbcc62b49e64d0a1080ff2dc26f2", size = 22520, upload-time = "2026-08-30T20:32:15.039Z" },
 ]
 
 [[package]]
