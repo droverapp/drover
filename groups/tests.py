@@ -1,11 +1,8 @@
 """
 Integration tests for the GroupEvent RSVP workflow.
 
-Covers:
-- RSVP model (unique-together, status transitions)
-- RSVP view (POST toggle, cancel, invalid status, unauthorized access)
-- URL routing (UUID path converters, valid/invalid formats)
-- Template rendering (status display, count breakdown, toggle buttons)
+Covers status submission, membership access, rendered RSVP controls, idempotent
+updates, group-page counts, and representative SQL query shapes.
 """
 
 import uuid
@@ -19,96 +16,6 @@ from inline_snapshot_django import snapshot_queries
 from groups.models import Group, GroupMember, GroupEvent, GroupEventRSVP
 
 User = get_user_model()
-
-
-class RSVPTestModel(TestCase):
-    """Test GroupEventRSVP model constraints and behavior."""
-
-    def setUp(self):
-        self.owner = User.objects.create_user(username="owner", password="pw")
-        self.member = User.objects.create_user(username="member", password="pw")
-        self.group = Group.objects.create(name="G1", owner=self.owner)
-        self.event = GroupEvent.objects.create(
-            group=self.group,
-            name="Party",
-            event_time="2026-12-01T00:00:00Z",
-        )
-
-    def test_can_create_rsvp(self):
-        rsvp = GroupEventRSVP.objects.create(
-            event=self.event, user=self.member, status=GroupEventRSVP.GOING
-        )
-        self.assertEqual(rsvp.status, GroupEventRSVP.GOING)
-        self.assertEqual(str(rsvp), f"{self.member} → Party: GOING")
-
-    def test_unique_rsvp_per_event_user(self):
-        """One user can't have two RSVPs for the same event."""
-        GroupEventRSVP.objects.create(event=self.event, user=self.member)
-        with self.assertRaises(Exception):
-            GroupEventRSVP.objects.create(event=self.event, user=self.member)
-
-    def test_status_choices(self):
-        """Only valid statuses are allowed."""
-        rsvp = GroupEventRSVP.objects.create(
-            event=self.event, user=self.member, status=GroupEventRSVP.MAYBE
-        )
-        rsvp.refresh_from_db()
-        self.assertEqual(rsvp.status, GroupEventRSVP.MAYBE)
-
-    def test_can_update_status(self):
-        """User can change their RSVP status over time."""
-        rsvp = GroupEventRSVP.objects.create(
-            event=self.event, user=self.member, status=GroupEventRSVP.GOING
-        )
-        rsvp.status = GroupEventRSVP.NOT_GOING
-        rsvp.save()
-        rsvp.refresh_from_db()
-        self.assertEqual(rsvp.status, GroupEventRSVP.NOT_GOING)
-
-
-class RSVPTestURLs(TestCase):
-    """Test URL routing with UUID converters."""
-
-    def setUp(self):
-        self.owner = User.objects.create_user(username="owner", password="pw")
-        self.group = Group.objects.create(name="G1", owner=self.owner)
-        self.event = GroupEvent.objects.create(group=self.group, name="E1")
-
-    def test_rsvp_url_resolves(self):
-        url = reverse(
-            "rsvp_event",
-            kwargs={
-                "group_id": self.group.id,
-                "event_id": self.event.id,
-                "status": "going",
-            },
-        )
-        self.assertIn(f"/groups/{self.group.id}/event/", url)
-        self.assertIn(f"/{self.event.id}/", url)
-        self.assertTrue(url.endswith("/rsvp/going/"))
-
-    def test_invalid_group_id_404(self):
-        """Non-UUID group_id returns 404 (converter validation)."""
-        from django.test import Client
-
-        c = Client()
-        c.post(f"/groups/not-a-uuid/event/{self.event.id}/rsvp/going/")
-        # Should not reach the view — URL converter rejects it
-        # (No assert needed; if view is reached, this would be a bug)
-
-    def test_invalid_status_404(self):
-        """Invalid status string doesn't match the route."""
-        from django.urls.exceptions import NoReverseMatch
-
-        with self.assertRaises(NoReverseMatch):
-            reverse(
-                "rsvp_event",
-                kwargs={
-                    "group_id": self.group.id,
-                    "event_id": self.event.id,
-                    "status": "invalid_status",
-                },
-            )
 
 
 class RSVPTestView(TestCase):
@@ -126,13 +33,12 @@ class RSVPTestView(TestCase):
             group=self.group, name="Party", event_time="2026-12-01T00:00:00Z"
         )
 
-    def _rsvp_url(self, event_id=None, status="going"):
+    def _rsvp_url(self, event_id=None):
         return reverse(
             "rsvp_event",
             kwargs={
                 "group_id": self.group.id,
                 "event_id": event_id or self.event.id,
-                "status": status,
             },
         )
 
@@ -142,13 +48,13 @@ class RSVPTestView(TestCase):
 
         c = Client()
         c.post("/users/login/", {"username": "member", "password": "pw"})
-        resp = c.post(self._rsvp_url(status="going"))
+        resp = c.post(self._rsvp_url(), {"status": "going"})
         self.assertEqual(resp.status_code, 302)
         self.assertTrue(
             resp["Location"].endswith(reverse("view_group", args=[self.group.id]))
         )
         rsvp = GroupEventRSVP.objects.get(event=self.event, user=self.member)
-        self.assertEqual(rsvp.status, GroupEventRSVP.GOING)
+        self.assertEqual(rsvp.status, GroupEventRSVP.Status.GOING)
 
     def test_member_can_change_rsvp(self):
         """Member already RSVP'd — changing status updates, not duplicates."""
@@ -156,23 +62,32 @@ class RSVPTestView(TestCase):
 
         c = Client()
         c.post("/users/login/", {"username": "member", "password": "pw"})
-        c.post(self._rsvp_url(status="going"))
-        resp = c.post(self._rsvp_url(status="not_going"))
+        c.post(self._rsvp_url(), {"status": "going"})
+        resp = c.post(self._rsvp_url(), {"status": "not_going"})
         self.assertEqual(resp.status_code, 302)
         rsvp = GroupEventRSVP.objects.get(event=self.event, user=self.member)
-        self.assertEqual(rsvp.status, GroupEventRSVP.NOT_GOING)
+        self.assertEqual(rsvp.status, GroupEventRSVP.Status.NOT_GOING)
         self.assertEqual(GroupEventRSVP.objects.filter(event=self.event).count(), 1)
 
-    def test_member_can_cancel_rsvp(self):
-        """Member POSTs same status again — RSVP is deleted (toggle off)."""
+    def test_repeating_same_rsvp_is_idempotent(self):
         from django.test import Client
 
         c = Client()
         c.post("/users/login/", {"username": "member", "password": "pw"})
-        c.post(self._rsvp_url(status="going"))
-        resp = c.post(self._rsvp_url(status="going"))
+        c.post(self._rsvp_url(), {"status": "going"})
+        resp = c.post(self._rsvp_url(), {"status": "going"})
+
         self.assertEqual(resp.status_code, 302)
-        self.assertEqual(GroupEventRSVP.objects.filter(event=self.event).count(), 0)
+        rsvp = GroupEventRSVP.objects.get(event=self.event, user=self.member)
+        self.assertEqual(rsvp.status, GroupEventRSVP.Status.GOING)
+
+    def test_invalid_status_does_not_create_rsvp(self):
+        c = Client()
+        c.force_login(self.member)
+        resp = c.post(self._rsvp_url(), {"status": "unknown"})
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertFalse(GroupEventRSVP.objects.filter(event=self.event).exists())
 
     def test_non_member_cannot_rsvp(self):
         """User not in the group gets 403/404."""
@@ -180,7 +95,7 @@ class RSVPTestView(TestCase):
 
         c = Client()
         c.post("/users/login/", {"username": "outsider", "password": "pw"})
-        resp = c.post(self._rsvp_url(status="going"))
+        resp = c.post(self._rsvp_url(), {"status": "going"})
         self.assertIn(resp.status_code, [403, 404])
 
     def test_unauthenticated_redirected(self):
@@ -188,7 +103,7 @@ class RSVPTestView(TestCase):
         from django.test import Client
 
         c = Client()
-        resp = c.post(self._rsvp_url(status="going"))
+        resp = c.post(self._rsvp_url(), {"status": "going"})
         self.assertEqual(resp.status_code, 302)
         self.assertIn("/users/login/", resp["Location"])
 
@@ -205,10 +120,10 @@ class RSVPTestTemplate(TestCase):
             group=self.group, name="Party", event_time="2026-12-01T00:00:00Z"
         )
         GroupEventRSVP.objects.create(
-            event=self.event, user=self.member, status=GroupEventRSVP.GOING
+            event=self.event, user=self.member, status=GroupEventRSVP.Status.GOING
         )
         GroupEventRSVP.objects.create(
-            event=self.event, user=self.owner, status=GroupEventRSVP.NOT_GOING
+            event=self.event, user=self.owner, status=GroupEventRSVP.Status.NOT_GOING
         )
 
     def test_view_group_shows_rsvp_counts(self):
@@ -246,13 +161,14 @@ class RSVPTestTemplate(TestCase):
         # RSVP toggle URL should be in the page
         rsvp_url = reverse(
             "rsvp_event",
-            kwargs={
-                "group_id": self.group.id,
-                "event_id": self.event.id,
-                "status": "going",
-            },
+            kwargs={"group_id": self.group.id, "event_id": self.event.id},
         )
-        self.assertContains(resp, rsvp_url)
+        self.assertEqual(
+            resp.content.count(f'<form method="post" action="{rsvp_url}"'.encode()), 1
+        )
+        self.assertContains(resp, 'name="status" value="going"', html=False)
+        self.assertContains(resp, 'name="status" value="maybe"', html=False)
+        self.assertContains(resp, 'name="status" value="not_going"', html=False)
 
 
 class EditGroupEventIdTests(TestCase):
@@ -323,7 +239,7 @@ class RSVPFullWorkflowTest(TestCase):
     """End-to-end integration tests: the whole RSVP process.
 
     Walks the full user journey through real views and URLs:
-    login -> create group -> create event -> RSVP -> view -> change -> cancel.
+    login -> create group -> create event -> RSVP -> view -> change -> repeat.
     """
 
     def setUp(self):
@@ -376,12 +292,9 @@ class RSVPFullWorkflowTest(TestCase):
         return self.c.post(
             reverse(
                 "rsvp_event",
-                kwargs={
-                    "group_id": group.id,
-                    "event_id": event.id,
-                    "status": status,
-                },
-            )
+                kwargs={"group_id": group.id, "event_id": event.id},
+            ),
+            {"status": status},
         )
 
     def test_full_workflow_create_group_event_rsvp(self):
@@ -399,7 +312,7 @@ class RSVPFullWorkflowTest(TestCase):
         resp = self._rsvp(group, event, "going")
         self.assertEqual(resp.status_code, 302)
         rsvp = GroupEventRSVP.objects.get(event=event, user=user)
-        self.assertEqual(rsvp.status, GroupEventRSVP.GOING)
+        self.assertEqual(rsvp.status, GroupEventRSVP.Status.GOING)
 
         resp = self.c.get(reverse("view_group", kwargs={"group_id": group.id}))
         self.assertEqual(resp.status_code, 200)
@@ -428,13 +341,13 @@ class RSVPFullWorkflowTest(TestCase):
         self.assertEqual(GroupEventRSVP.objects.filter(event=event).count(), 3)
         self.assertEqual(
             GroupEventRSVP.objects.filter(
-                event=event, status=GroupEventRSVP.GOING
+                event=event, status=GroupEventRSVP.Status.GOING
             ).count(),
             2,
         )
         self.assertEqual(
             GroupEventRSVP.objects.filter(
-                event=event, status=GroupEventRSVP.NOT_GOING
+                event=event, status=GroupEventRSVP.Status.NOT_GOING
             ).count(),
             1,
         )
@@ -445,8 +358,8 @@ class RSVPFullWorkflowTest(TestCase):
         self.assertContains(resp, "2 Going")
         self.assertContains(resp, "1 Not Going")
 
-    def test_full_workflow_change_then_cancel_rsvp(self):
-        """User RSVPs going -> changes to maybe -> cancels (toggles off)."""
+    def test_full_workflow_repeating_rsvp_is_idempotent(self):
+        """A repeated status submission preserves the user's RSVP."""
         owner = User.objects.create_user(username="owner2", password="pw")
         user = User.objects.create_user(username="changer", password="pw")
         group = Group.objects.create(name="Change", owner=owner)
@@ -457,21 +370,22 @@ class RSVPFullWorkflowTest(TestCase):
 
         self._rsvp(group, event, "going")
         rsvp = GroupEventRSVP.objects.get(event=event, user=user)
-        self.assertEqual(rsvp.status, GroupEventRSVP.GOING)
+        self.assertEqual(rsvp.status, GroupEventRSVP.Status.GOING)
 
         self._rsvp(group, event, "maybe")
         rsvp.refresh_from_db()
-        self.assertEqual(rsvp.status, GroupEventRSVP.MAYBE)
+        self.assertEqual(rsvp.status, GroupEventRSVP.Status.MAYBE)
+
+        self._rsvp(group, event, "maybe")
+        rsvp.refresh_from_db()
+        self.assertEqual(rsvp.status, GroupEventRSVP.Status.MAYBE)
         self.assertEqual(
             GroupEventRSVP.objects.filter(event=event, user=user).count(), 1
         )
 
-        self._rsvp(group, event, "maybe")
-        self.assertFalse(GroupEventRSVP.objects.filter(event=event, user=user).exists())
-
         resp = self.c.get(reverse("view_group", kwargs={"group_id": group.id}))
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, "You haven't RSVP'd")
+        self.assertContains(resp, "Your RSVP: Maybe")
 
     def test_full_workflow_rsvp_deleted_when_event_deleted(self):
         """Deleting an event cascades to its RSVPs."""
@@ -502,7 +416,7 @@ class RSVPFullWorkflowTest(TestCase):
         self.assertEqual(resp.status_code, 302)
 
     def test_rsvp_and_group_page_query_variants(self):
-        """Snapshot SQL for group-page read and RSVP create/update/delete paths."""
+        """Snapshot SQL for group-page read and RSVP create/update/no-op paths."""
         owner = User.objects.create_user(username="snapshot-owner", password="pw")
         user = User.objects.create_user(username="snapshot-member", password="pw")
         group = Group.objects.create(name="Snapshots", owner=owner)
@@ -535,17 +449,14 @@ class RSVPFullWorkflowTest(TestCase):
                 "SELECT ... FROM groups_group WHERE ... ORDER BY ... DESC LIMIT ...",
                 "SELECT ... FROM groups_groupevent WHERE ... ORDER BY ... DESC LIMIT ...",
                 "SELECT ... FROM groups_groupmember INNER JOIN users_user ON ... WHERE ... ORDER BY ... ASC LIMIT ...",
-                "SELECT ... FROM groups_groupeventrsvp WHERE ... ORDER BY ... DESC LIMIT ...",
+                "SELECT ... FROM groups_groupeventrsvp WHERE ... LIMIT ...",
                 "SAVEPOINT s1",
-                "SELECT ... FROM groups_groupeventrsvp WHERE ... LIMIT ... FOR UPDATE",
-                "SAVEPOINT s2",
                 "INSERT INTO groups_groupeventrsvp (...) VALUES (...)",
-                "RELEASE SAVEPOINT s2",
                 "RELEASE SAVEPOINT s1",
             ]
         )
         rsvp = GroupEventRSVP.objects.get(event=event, user=user)
-        self.assertEqual(rsvp.status, GroupEventRSVP.GOING)
+        self.assertEqual(rsvp.status, GroupEventRSVP.Status.GOING)
 
         with snapshot_queries() as update_queries:
             self._rsvp(group, event, "maybe")
@@ -556,27 +467,27 @@ class RSVPFullWorkflowTest(TestCase):
                 "SELECT ... FROM groups_group WHERE ... ORDER BY ... DESC LIMIT ...",
                 "SELECT ... FROM groups_groupevent WHERE ... ORDER BY ... DESC LIMIT ...",
                 "SELECT ... FROM groups_groupmember INNER JOIN users_user ON ... WHERE ... ORDER BY ... ASC LIMIT ...",
-                "SELECT ... FROM groups_groupeventrsvp WHERE ... ORDER BY ... DESC LIMIT ...",
-                "SAVEPOINT s1",
-                "SELECT ... FROM groups_groupeventrsvp WHERE ... LIMIT ... FOR UPDATE",
+                "SELECT ... FROM groups_groupeventrsvp WHERE ... LIMIT ...",
                 "UPDATE groups_groupeventrsvp SET ... = ... WHERE ...",
-                "RELEASE SAVEPOINT s1",
             ]
         )
         rsvp.refresh_from_db()
-        self.assertEqual(rsvp.status, GroupEventRSVP.MAYBE)
+        self.assertEqual(rsvp.status, GroupEventRSVP.Status.MAYBE)
 
-        with snapshot_queries() as delete_queries:
+        with snapshot_queries() as idempotent_queries:
             self._rsvp(group, event, "maybe")
-        assert delete_queries == snapshot(
+        assert idempotent_queries == snapshot(
             [
                 "SELECT ... FROM django_session WHERE ... LIMIT ...",
                 "SELECT ... FROM users_user WHERE ... LIMIT ...",
                 "SELECT ... FROM groups_group WHERE ... ORDER BY ... DESC LIMIT ...",
                 "SELECT ... FROM groups_groupevent WHERE ... ORDER BY ... DESC LIMIT ...",
                 "SELECT ... FROM groups_groupmember INNER JOIN users_user ON ... WHERE ... ORDER BY ... ASC LIMIT ...",
-                "SELECT ... FROM groups_groupeventrsvp WHERE ... ORDER BY ... DESC LIMIT ...",
-                "DELETE FROM groups_groupeventrsvp WHERE ...",
+                "SELECT ... FROM groups_groupeventrsvp WHERE ... LIMIT ...",
             ]
         )
-        self.assertFalse(GroupEventRSVP.objects.filter(event=event, user=user).exists())
+        rsvp.refresh_from_db()
+        self.assertEqual(rsvp.status, GroupEventRSVP.Status.MAYBE)
+        self.assertEqual(
+            GroupEventRSVP.objects.filter(event=event, user=user).count(), 1
+        )

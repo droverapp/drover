@@ -17,7 +17,7 @@ class Group(models.Model):
     description = RichTextField(blank=True)
     image = models.ImageField(upload_to="images/", null=True, blank=True)
     owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='owned_groups'
     )
@@ -99,15 +99,11 @@ class GroupEventRSVP(models.Model):
     Tracks RSVP responses for a group event.
     One per (event, user); a user can change their response over time.
     """
-    GOING = "GOING"
-    NOT_GOING = "NOT_GOING"
-    MAYBE = "MAYBE"
 
-    STATUS_CHOICES = [
-        (GOING, "Going"),
-        (NOT_GOING, "Not Going"),
-        (MAYBE, "Maybe"),
-    ]
+    class Status(models.TextChoices):
+        GOING = "GOING", "Going"
+        NOT_GOING = "NOT_GOING", "Not Going"
+        MAYBE = "MAYBE", "Maybe"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey(
@@ -121,9 +117,9 @@ class GroupEventRSVP(models.Model):
         related_name='event_rsvps',
     )
     status = models.CharField(
+        choices=Status.choices,
+        default=Status.MAYBE,
         max_length=10,
-        choices=STATUS_CHOICES,
-        default=GOING,
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -150,12 +146,12 @@ class GroupMessage(models.Model):
         ("S", "Successfully Sent"),
         ("F", "Sending Failed"),
     ]
-    
+
     TYPE_CHOICES = [
         ("AM", "Admin to Members"),
         ("MA", "Member to Admin"),
     ]
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     message_type = models.CharField(choices=TYPE_CHOICES, max_length=2)
     group = models.ForeignKey(
