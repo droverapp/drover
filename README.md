@@ -17,6 +17,33 @@ More information and newsletter signup is available at [www.droverapp.org](https
 - Run `uv run python3 manage.py runserver`
 - Open http://localhost:8000
 
+## Web Push notifications
+
+Web Push is optional and remains disabled unless both VAPID keys are configured. The public key is used by the browser; the private key must stay in a secure environment setting. Generate one pair on a trusted machine and keep it stable across deployments so existing browser subscriptions remain valid:
+
+```python
+from cryptography.hazmat.primitives import serialization
+from py_vapid import Vapid02, b64urlencode
+
+vapid = Vapid02()
+vapid.generate_keys()
+private_der = vapid.private_key.private_bytes(
+    serialization.Encoding.DER,
+    serialization.PrivateFormat.PKCS8,
+    serialization.NoEncryption(),
+)
+public_raw = vapid.public_key.public_bytes(
+    serialization.Encoding.X962,
+    serialization.PublicFormat.UncompressedPoint,
+)
+print("WEBPUSH_VAPID_PUBLIC_KEY=" + b64urlencode(public_raw))
+print("WEBPUSH_VAPID_PRIVATE_KEY=" + b64urlencode(private_der))
+```
+
+Set both values in the deployment secret store or local `.env` (see `.env.example`); set `WEBPUSH_VAPID_SUBJECT` to a monitored `mailto:` address. The generator prints the private value—never commit it, log it, or share it. Keep the pair stable; replacing keys requires users to subscribe again. Push is sent for new group messages and replies, using only FCM and Apple Web Push endpoints.
+
+On iOS/iPadOS, users must install Drover on the Home Screen and use version 16.4 or later; ordinary Safari tabs cannot receive Web Push. The [Apple Web Push guide](https://developer.apple.com/documentation/usernotifications/sending-web-push-notifications-in-web-apps-and-browsers) and [pywebpush documentation](https://pypi.org/project/pywebpush/) describe the platform and server protocol details.
+
 ## Deploying
 
 This release deletes and regenerates the entire migration history, so an

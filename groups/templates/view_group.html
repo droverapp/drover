@@ -32,12 +32,22 @@
         {% if event.instructions %}
         <p>Note: {{ event.instructions }}</p>
         {% endif %}
-        {% comment %}
-        {% if there's an event RSVP}
-        <p>Your RSVP status: {{MEMBERS RSVP}}</p>
-        {% If admin, add list/popup/link to see RSVPs for each event}
-        {% endcomment %}
-      </div>
+        {% if event.my_rsvp_display %}
+        <p>Your RSVP: {{ event.my_rsvp_display }}</p>
+        {% else %}
+        <p>You haven't RSVP'd.</p>
+        {% endif %}
+        <p class="rsvp-counts">
+          {{ event.going_count }} Going · {{ event.not_going_count }} Not Going · {{ event.maybe_count }} Maybe
+        </p>
+        <div class="rsvp-toggle">
+          <form method="post" action="{% url 'rsvp_event' group_id=group.id event_id=event.id %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit" name="status" value="going" class="btn btn-sm btn-outline-primary">Going</button>
+            <button type="submit" name="status" value="maybe" class="btn btn-sm btn-outline-warning">Maybe</button>
+            <button type="submit" name="status" value="not_going" class="btn btn-sm btn-outline-secondary">Not Going</button>
+          </form>
+        </div>
     {% endfor %}
     {% endif %}
   </div>

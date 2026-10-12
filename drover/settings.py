@@ -27,6 +27,7 @@ SECRET_KEY = env.str("SECRET_KEY", default=get_random_secret_key()).encode("utf8
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", default=False)
+TEMPLATE_DEBUG = env.bool("TEMPLATE_DEBUG", default=DEBUG)
 
 ALLOWED_HOSTS = ["127.0.0.1", "localhost", ".herokuapp.com"]
 if DEBUG:
@@ -66,6 +67,7 @@ TEMPLATES = [
         "DIRS": [],
         "APP_DIRS": True,
         "OPTIONS": {
+            "debug": TEMPLATE_DEBUG,
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
@@ -156,6 +158,13 @@ TWILIO_AUTH_TOKEN = env.str("TWILIO_AUTH_TOKEN")
 TWILIO_ACCOUNT_SID = env.str("TWILIO_ACCOUNT_SID", default=TWILIO_SSID)
 TWILIO_API_KEY = env.str("TWILIO_API_KEY", default="")
 TWILIO_API_SECRET = env.str("TWILIO_API_SECRET", default="")
+
+# Web Push VAPID key pair; empty keys disable browser notifications.
+WEBPUSH_VAPID_PUBLIC_KEY = env.str("WEBPUSH_VAPID_PUBLIC_KEY", default="")
+WEBPUSH_VAPID_PRIVATE_KEY = env.str("WEBPUSH_VAPID_PRIVATE_KEY", default="")
+WEBPUSH_VAPID_SUBJECT = env.str(
+    "WEBPUSH_VAPID_SUBJECT", default="mailto:kathleen@droverapp.org"
+)
 
 
 # Static files (CSS, JavaScript, Images)

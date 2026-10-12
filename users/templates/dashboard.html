@@ -1,9 +1,28 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
   {% include 'header.html' with title="Dashboard" nav_menu=True %}
   <div class="container">
     <h2>Your Groups</h2>
+    <section class="card my-3" aria-labelledby="browser-notifications-title">
+      <div class="card-body">
+        <h3 id="browser-notifications-title">Browser notifications</h3>
+        <p>Get a notice for group messages and replies. Message content stays in Drover.</p>
+        <p id="web-push-status" role="status" aria-live="polite">Checking browser support...</p>
+        <button
+          class="btn btn-primary"
+          id="web-push-toggle"
+          type="button"
+          data-enabled="{{ webpush_enabled|yesno:'true,false' }}"
+          data-public-key="{{ webpush_public_key }}"
+          data-register-url="{% url 'register_webpush_subscription' %}"
+          data-revoke-url="{% url 'revoke_webpush_subscription' %}"
+          data-worker-url="{% url 'service_worker' %}"
+          disabled
+        >Checking...</button>
+      </div>
+    </section>
     {% if owned_groups|length == 0 and member_groups|length == 0 %}
       <div class="message">
         There is no group you are part of.
@@ -55,4 +74,9 @@
     {% endif %}
   </div>
   {% include 'footer.html' with show_logo=True %}
+{% endblock %}
+{% block page_js %}
+  {% if webpush_enabled %}
+    <script src="{% static 'js/webpush.js' %}" defer></script>
+  {% endif %}
 {% endblock %}
