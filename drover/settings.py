@@ -138,6 +138,9 @@ USE_TZ = True
 LOGIN_URL = "login"
 
 # Sendgrid settings
+DEFAULT_FROM_EMAIL = env.str(
+    "DEFAULT_FROM_EMAIL", default="kathleen@droverapp.org"
+)
 SENDGRID_API_KEY = env.str("SENDGRID_API_KEY")
 SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 
