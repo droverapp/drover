@@ -29,6 +29,9 @@
           <div class="controls" style="margin-top: 1rem;text-align: center;">
               <button type="submit" class="btn btn-primary btn-orange">Login</button>
           </div>
+          <div>
+              <a href="{% url 'password_reset' %}">Forgot password?</a>
+          </div>
           <a href="/users/signup{% if next %}?next={{ next }}{% endif %}">Not a user? Signup</a>
       </div>
     </form>

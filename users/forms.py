@@ -1,13 +1,23 @@
 import re
+
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.forms import PasswordResetForm, UserCreationForm
+from django.db.models import Q
+
 from .models import User
 
 
 class SignUpForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ["first_name", "last_name", "username", "password1", "password2", "contact_number"]
+        fields = [
+            "first_name",
+            "last_name",
+            "username",
+            "password1",
+            "password2",
+            "contact_number",
+        ]
 
         widgets = {
             "username": forms.TextInput(
@@ -34,7 +44,7 @@ class SignUpForm(UserCreationForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(SignUpForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["password1"].widget = forms.PasswordInput(
             attrs={"class": "form-control", "placeholder": "Password"}
         )
@@ -71,3 +81,24 @@ class SignUpForm(UserCreationForm):
                 code="invalid",
             )
         return password1
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data["username"]
+        if commit:
+            user.save()
+        return user
+
+
+class EmailOrUsernamePasswordResetForm(PasswordResetForm):
+    def get_users(self, email):
+        candidates = User._default_manager.filter(
+            Q(email__iexact=email) | Q(username__iexact=email),
+            is_active=True,
+        )
+        for user in candidates:
+            if user.has_usable_password():
+                if not user.email and "@" in user.username:
+                    user.email = user.username
+                    user.save(update_fields=["email"])
+                yield user

@@ -1,6 +1,8 @@
 import json
+import re
 from unittest.mock import patch
 
+from django.core import mail
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
@@ -267,3 +269,75 @@ class WebPushDashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="web-push-toggle"', html=False)
         self.assertContains(response, 'data-enabled="false"', html=False)
+
+
+class PasswordResetAndRedirectTests(TestCase):
+    def setUp(self):
+        mail.outbox = []
+        self.legacy_user = User.objects.create_user(
+            username="legacy@example.com",
+            email="",
+            password="OldPassword1!",
+        )
+
+    def test_login_page_links_to_forgot_password(self):
+        response = self.client.get(reverse("login"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("password_reset"))
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_password_reset_flow_works_for_username_only_accounts(self):
+        response = self.client.post(
+            reverse("password_reset"),
+            {"email": "legacy@example.com"},
+        )
+        self.assertRedirects(response, reverse("password_reset_done"))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["legacy@example.com"])
+
+        match = re.search(r"/users/reset/[^/]+/[^/\s]+/", mail.outbox[0].body)
+        self.assertIsNotNone(match)
+        confirm_response = self.client.get(match.group(0), follow=True)
+        self.assertEqual(confirm_response.status_code, 200)
+
+        set_url = confirm_response.redirect_chain[-1][0]
+        reset_response = self.client.post(
+            set_url,
+            {
+                "new_password1": "NewStrongPass1!",
+                "new_password2": "NewStrongPass1!",
+            },
+        )
+        self.assertRedirects(reset_response, reverse("password_reset_complete"))
+        self.legacy_user.refresh_from_db()
+        self.assertTrue(self.legacy_user.check_password("NewStrongPass1!"))
+
+    def test_signup_populates_email_and_rejects_external_next_redirect(self):
+        response = self.client.post(
+            f"{reverse('signup')}?next=https://evil.example/phish",
+            {
+                "first_name": "Ada",
+                "last_name": "Lovelace",
+                "username": "ada@example.com",
+                "contact_number": "+12025550199",
+                "password1": "ValidPass1!",
+                "password2": "ValidPass1!",
+            },
+        )
+        self.assertRedirects(response, reverse("dashboard"))
+        user = User.objects.get(username="ada@example.com")
+        self.assertEqual(user.email, "ada@example.com")
+
+    def test_login_allows_relative_next_and_blocks_external_next(self):
+        external = self.client.post(
+            f"{reverse('login')}?next=https://evil.example/steal",
+            {"username": "legacy@example.com", "password": "OldPassword1!"},
+        )
+        self.assertRedirects(external, reverse("dashboard"))
+        self.client.logout()
+
+        internal = self.client.post(
+            f"{reverse('login')}?next=/groups/create/",
+            {"username": "legacy@example.com", "password": "OldPassword1!"},
+        )
+        self.assertRedirects(internal, "/groups/create/")

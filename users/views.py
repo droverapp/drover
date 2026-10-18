@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 
@@ -14,6 +15,17 @@ from groups.models import GroupMember
 from .forms import SignUpForm
 from .models import WebPushSubscription
 from .push import is_allowed_push_endpoint
+
+
+def _safe_next_redirect(request):
+    next_url = request.GET.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect("dashboard")
 
 
 def signup(request):
@@ -25,9 +37,7 @@ def signup(request):
             raw_password = form.cleaned_data.get("password1")
             user = authenticate(username=username, password=raw_password)
             login(request, user)
-            if request.GET.get("next", None):
-                return redirect(request.GET["next"])
-            return redirect("dashboard")
+            return _safe_next_redirect(request)
     else:
         form = SignUpForm()
     return render(request, "signup.html", {"form": form})
@@ -41,9 +51,7 @@ def login_view(request):
         user = authenticate(username=username, password=password)
         if user is not None and user.is_active:
             login(request, user)
-            if request.GET.get("next", None):
-                return redirect(request.GET["next"])
-            return redirect("dashboard")
+            return _safe_next_redirect(request)
     return render(request, "login.html", {"next": request.GET.get("next", None)})
 
 
