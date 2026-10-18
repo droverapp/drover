@@ -1,5 +1,6 @@
 import datetime
 import uuid
+from urllib.parse import urlsplit
 
 import bleach
 from django.contrib.auth.decorators import login_required
@@ -34,6 +35,24 @@ from .models import (
 from .sms import send_text_message
 
 
+def _sanitize_map_link(raw_url):
+    if not isinstance(raw_url, str):
+        return ""
+    candidate = raw_url.strip()
+    if not candidate:
+        return ""
+    parsed = urlsplit(candidate)
+    if parsed.scheme in ("http", "https") and parsed.netloc:
+        return candidate
+    if (
+        parsed.scheme == ""
+        and parsed.netloc == ""
+        and candidate.startswith("/mapview/")
+    ):
+        return candidate
+    return ""
+
+
 @login_required
 def create_group(request):
     if request.method == "POST":
@@ -62,7 +81,9 @@ def create_group(request):
                 instructions=request.POST.getlist("event_instructions[]")[index],
                 venue_name=request.POST.getlist("event_venue_name[]")[index],
                 venue_address=request.POST.getlist("event_venue_address[]")[index],
-                venue_map_link=request.POST.getlist("event_venue_map[]")[index],
+                venue_map_link=_sanitize_map_link(
+                    request.POST.getlist("event_venue_map[]")[index]
+                ),
                 group=group,
             )
             event.save()
@@ -113,7 +134,9 @@ def edit_group(request, group_id):
                         venue_address=request.POST.getlist("event_venue_address[]")[
                             index
                         ],
-                        venue_map_link=request.POST.getlist("event_venue_map[]")[index],
+                        venue_map_link=_sanitize_map_link(
+                            request.POST.getlist("event_venue_map[]")[index]
+                        ),
                         group=group,
                     )
                     event.save()
@@ -134,9 +157,9 @@ def edit_group(request, group_id):
                     event.venue_address = request.POST.getlist("event_venue_address[]")[
                         index
                     ]
-                    event.venue_map_link = request.POST.getlist("event_venue_map[]")[
-                        index
-                    ]
+                    event.venue_map_link = _sanitize_map_link(
+                        request.POST.getlist("event_venue_map[]")[index]
+                    )
                     event.save()
 
             # Edit Old Events if changed

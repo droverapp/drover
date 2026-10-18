@@ -6,7 +6,7 @@ crossorigin="">
 {% endblock %}
 {% block content %}
   {% include 'header.html' with title="Map" nav_menu=True %}
-  <div class="container"><div id="mapid"></div></div>
+  <div class="container"><div id="mapid" data-lat="{{ lat }}" data-lon="{{ lon }}"></div></div>
   {% include 'footer.html' with show_logo=True %}
 {% endblock %}
 
@@ -14,12 +14,18 @@ crossorigin="">
 <script src="{% static 'js/leaflet.js' %}"></script>
 <script type="text/javascript">
   $(function () {
-    var map = L.map('mapid').setView([{{ lat }},{{ lon }}], 17);
+    var mapElement = document.getElementById('mapid');
+    var lat = parseFloat(mapElement.dataset.lat);
+    var lon = parseFloat(mapElement.dataset.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      return;
+    }
+    var map = L.map('mapid').setView([lat, lon], 17);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    L.marker([{{ lat }},{{ lon }}]).addTo(map)
+    L.marker([lat, lon]).addTo(map)
         .openPopup();
   });
 </script>

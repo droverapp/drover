@@ -6,5 +6,6 @@ urlpatterns = [
     path("service-worker.js", views.service_worker, name="service_worker"),
     path("", views.home, name="home"),
     path("mapview/", views.mapview, name="mapview"),
+    path("location-search/", views.location_search, name="location_search"),
     path("sms-reply/", views.sms_reply, name="sms_reply"),
 ]
