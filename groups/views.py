@@ -18,6 +18,7 @@ from django.db.models import (
 from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from shortener.utils import generate_short_url
@@ -54,6 +55,42 @@ def _sanitize_map_link(raw_url):
     return ""
 
 
+def _parse_event_time(raw_value):
+    if not isinstance(raw_value, str):
+        return None
+    cleaned = raw_value.strip()
+    if not cleaned:
+        return None
+    for fmt in ("%m/%d/%Y %I:%M %p", "%Y-%m-%d %H:%M"):
+        try:
+            parsed = datetime.datetime.strptime(cleaned, fmt)
+            if timezone.is_naive(parsed):
+                return timezone.make_aware(parsed, timezone.get_current_timezone())
+            return parsed
+        except ValueError:
+            continue
+    raise Http404(f"Invalid event time: {raw_value!r}")
+
+
+def _format_event_date_range(events):
+    dates = [
+        (
+            timezone.localtime(event.event_time).date()
+            if timezone.is_aware(event.event_time)
+            else event.event_time.date()
+        )
+        for event in events
+        if event.event_time is not None
+    ]
+    if not dates:
+        return ""
+    start_date = min(dates)
+    end_date = max(dates)
+    if start_date == end_date:
+        return start_date.strftime("%b %d, %Y")
+    return f"{start_date.strftime('%b %d, %Y')} – {end_date.strftime('%b %d, %Y')}"
+
+
 @login_required
 def create_group(request):
     if request.method == "POST":
@@ -72,12 +109,12 @@ def create_group(request):
             user=request.user, is_admin=True, owner=True, group=group
         )
         group_member.save()
-        for index in range(len(request.POST.getlist("event_name[]"))):
-            event_time = datetime.datetime.strptime(
-                request.POST.getlist("event_time[]")[index], "%m/%d/%Y %I:%M %p"
-            ).strftime("%Y-%m-%d %H:%M")
+        event_times = request.POST.getlist("event_time[]")
+        for index, event_name in enumerate(request.POST.getlist("event_name[]")):
+            raw_time = event_times[index] if index < len(event_times) else ""
+            event_time = _parse_event_time(raw_time)
             event = GroupEvent(
-                name=request.POST.getlist("event_name[]")[index],
+                name=event_name,
                 event_time=event_time,
                 instructions=request.POST.getlist("event_instructions[]")[index],
                 venue_name=request.POST.getlist("event_venue_name[]")[index],
@@ -111,22 +148,16 @@ def edit_group(request, group_id):
             group.venue = request.POST["venue"]
             group.save()
 
-            for index in range(len(request.POST.getlist("event_name[]"))):
-                if request.POST.getlist("event_time[]")[index]:
-                    event_time = datetime.datetime.strptime(
-                        request.POST.getlist("event_time[]")[index],
-                        "%m/%d/%Y %I:%M %p",
-                    ).strftime("%Y-%m-%d %H:%M")
+            event_times = request.POST.getlist("event_time[]")
+            for index, event_name in enumerate(request.POST.getlist("event_name[]")):
+                raw_time = event_times[index] if index < len(event_times) else ""
+                event_time = _parse_event_time(raw_time)
                 event_id_raw = request.POST.getlist("event_id[]")[index]
                 if not event_id_raw or event_id_raw == "0":
                     # New event: "0"/"" is the frontend sentinel
                     # (static/js/add_event.js); no UUID-pk row can match it.
-                    event_time = datetime.datetime.strptime(
-                        request.POST.getlist("event_time[]")[index],
-                        "%m/%d/%Y %I:%M %p",
-                    ).strftime("%Y-%m-%d %H:%M")
                     event = GroupEvent(
-                        name=request.POST.getlist("event_name[]")[index],
+                        name=event_name,
                         event_time=event_time,
                         instructions=request.POST.getlist("event_instructions[]")[
                             index
@@ -149,7 +180,7 @@ def edit_group(request, group_id):
                     except ValueError:
                         raise Http404(f"Invalid event id: {event_id_raw!r}")
                     event = get_object_or_404(GroupEvent, id=event_id, group=group)
-                    event.name = request.POST.getlist("event_name[]")[index]
+                    event.name = event_name
                     event.event_time = event_time
                     event.instructions = request.POST.getlist("event_instructions[]")[
                         index
@@ -238,6 +269,7 @@ def view_group(request, group_id):
                 "is_admin": group_member.is_admin,
                 "group_members": group_members,
                 "events": events,
+                "event_date_range": lambda: _format_event_date_range(events),
             },
         )
     return redirect("dashboard")
