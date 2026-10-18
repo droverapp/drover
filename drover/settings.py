@@ -166,6 +166,14 @@ WEBPUSH_VAPID_SUBJECT = env.str(
     "WEBPUSH_VAPID_SUBJECT", default="mailto:kathleen@droverapp.org"
 )
 
+# OpenStreetMap / Nominatim geocoding settings
+OSM_SEARCH_URL = env.str(
+    "OSM_SEARCH_URL", default="https://nominatim.openstreetmap.org/search"
+)
+OSM_USER_AGENT = env.str(
+    "OSM_USER_AGENT", default="Drover/0.1 (+https://droverapp.org)"
+)
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
