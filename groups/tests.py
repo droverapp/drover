@@ -983,3 +983,118 @@ class GroupMessageReplyTests(TestCase):
         self.assertFalse(GroupMessage.objects.filter(reply_to=foreign_message).exists())
         send_sms.assert_not_called()
         send_push.assert_not_called()
+
+
+class EventRSVPAdminRosterAndMessagingTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username="rsvp-admin@example.com",
+            first_name="Admin",
+            last_name="One",
+            password="pw",
+            contact_number="+12025550301",
+        )
+        self.going_member = User.objects.create_user(
+            username="going@example.com",
+            first_name="Going",
+            last_name="Member",
+            password="pw",
+            contact_number="+12025550302",
+        )
+        self.maybe_member = User.objects.create_user(
+            username="maybe@example.com",
+            first_name="Maybe",
+            last_name="Member",
+            password="pw",
+            contact_number="+12025550303",
+        )
+        self.not_going_member = User.objects.create_user(
+            username="no@example.com",
+            first_name="NotGoing",
+            last_name="Member",
+            password="pw",
+            contact_number="+12025550304",
+        )
+        self.group = Group.objects.create(name="RSVP Messaging", owner=self.admin)
+        GroupMember.objects.create(
+            user=self.admin, group=self.group, owner=True, is_admin=True
+        )
+        GroupMember.objects.create(user=self.going_member, group=self.group)
+        GroupMember.objects.create(user=self.maybe_member, group=self.group)
+        GroupMember.objects.create(user=self.not_going_member, group=self.group)
+        self.event = GroupEvent.objects.create(
+            group=self.group,
+            name=" Gala ",
+            event_time="2026-12-10T18:00:00Z",
+        )
+        GroupEventRSVP.objects.create(
+            event=self.event,
+            user=self.going_member,
+            status=GroupEventRSVP.Status.GOING,
+        )
+        GroupEventRSVP.objects.create(
+            event=self.event,
+            user=self.maybe_member,
+            status=GroupEventRSVP.Status.MAYBE,
+        )
+        GroupEventRSVP.objects.create(
+            event=self.event,
+            user=self.not_going_member,
+            status=GroupEventRSVP.Status.NOT_GOING,
+        )
+
+    def test_admin_sees_who_rsvped_while_regular_member_only_sees_counts(self):
+        self.client.force_login(self.admin)
+        admin_resp = self.client.get(reverse("view_group", args=[self.group.id]))
+        self.assertEqual(admin_resp.status_code, 200)
+        self.assertContains(admin_resp, "Going Member: Going")
+        self.assertContains(admin_resp, "Maybe Member: Maybe")
+        self.assertContains(admin_resp, "NotGoing Member: Not Going")
+
+        self.client.force_login(self.going_member)
+        member_resp = self.client.get(reverse("view_group", args=[self.group.id]))
+        self.assertEqual(member_resp.status_code, 200)
+        self.assertNotContains(member_resp, "Maybe Member: Maybe")
+
+    @patch("groups.views.send_web_push_to_user")
+    @patch("groups.views.send_text_message")
+    def test_admin_can_send_message_filtered_by_event_rsvp_status(
+        self, send_sms, send_push
+    ):
+        self.client.force_login(self.admin)
+        url = reverse("send_message", kwargs={"group_id": self.group.id})
+        response = self.client.post(
+            url,
+            {
+                "message": "Update for attendees",
+                "event_id": str(self.event.id),
+                "rsvp_status": "GOING",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            [call.args[0] for call in send_sms.call_args_list],
+            [self.going_member.contact_number],
+        )
+        self.assertEqual(
+            [call.args[0] for call in send_push.call_args_list],
+            [self.going_member],
+        )
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_readding_or_reinviting_removed_member_reactivates_without_integrity_error(
+        self,
+    ):
+        membership = GroupMember.objects.get(group=self.group, user=self.going_member)
+        membership.is_deleted = True
+        membership.save()
+
+        self.client.force_login(self.admin)
+        add_resp = self.client.post(
+            reverse("add_group_member", kwargs={"group_id": self.group.id}),
+            {"email": self.going_member.username, "is_admin": "on"},
+        )
+        self.assertEqual(add_resp.status_code, 302)
+        membership.refresh_from_db()
+        self.assertFalse(membership.is_deleted)
+        self.assertTrue(membership.is_admin)
