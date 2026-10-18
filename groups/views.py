@@ -9,6 +9,7 @@ from django.db.models import (
     CharField,
     Count,
     OuterRef,
+    Prefetch,
     Q,
     Subquery,
     Value,
@@ -220,6 +221,15 @@ def view_group(request, group_id):
                 ),
             )
         )
+        if group_member.is_admin:
+            events = events.prefetch_related(
+                Prefetch(
+                    "rsvps",
+                    queryset=GroupEventRSVP.objects.select_related("user").order_by(
+                        "created_at"
+                    ),
+                )
+            )
         return render(
             request,
             "view_group.html",
@@ -244,10 +254,17 @@ def add_group_member(request, group_id):
         if request.method == "POST":
             user = User.objects.filter(username=request.POST["email"]).first()
             if user:
-                new_group_member = GroupMember(
-                    user=user, group=group, is_admin=request.POST.get("is_admin", False)
+                is_admin = request.POST.get("is_admin") in (
+                    "on",
+                    "true",
+                    "True",
+                    "1",
                 )
-                new_group_member.save()
+                GroupMember.objects.update_or_create(
+                    user=user,
+                    group=group,
+                    defaults={"is_admin": is_admin, "is_deleted": False},
+                )
                 send_invitation_email(
                     group.name,
                     "kathleen@droverapp.org",
@@ -334,6 +351,23 @@ def send_message(request, group_id):
             message_receivers = GroupMember.objects.filter(
                 group=group, is_admin=message_type == "MA", is_deleted=False
             )
+            if current_dr_group_member.is_admin:
+                event_id_raw = request.POST.get("event_id", "").strip()
+                rsvp_status = request.POST.get("rsvp_status", "").strip().upper()
+                if event_id_raw:
+                    try:
+                        target_event_id = uuid.UUID(event_id_raw)
+                    except ValueError:
+                        raise Http404(f"Invalid event id: {event_id_raw!r}")
+                    target_event = get_object_or_404(
+                        GroupEvent, id=target_event_id, group=group
+                    )
+                    rsvp_qs = GroupEventRSVP.objects.filter(event=target_event)
+                    if rsvp_status in GroupEventRSVP.Status.values:
+                        rsvp_qs = rsvp_qs.filter(status=rsvp_status)
+                    message_receivers = message_receivers.filter(
+                        user_id__in=rsvp_qs.values("user_id")
+                    )
             conversation_path = reverse(
                 "conversation_details",
                 kwargs={"group_id": group.id, "message_id": message.id},
@@ -355,7 +389,17 @@ def send_message(request, group_id):
         return render(
             request,
             "compose_message.html",
-            {"is_admin": current_dr_group_member.is_admin},
+            {
+                "is_admin": current_dr_group_member.is_admin,
+                "events": (
+                    group.events.all().order_by("event_time")
+                    if current_dr_group_member.is_admin
+                    else []
+                ),
+                "rsvp_choices": GroupEventRSVP.Status.choices,
+                "selected_event_id": request.GET.get("event_id", ""),
+                "selected_rsvp_status": request.GET.get("rsvp_status", "").upper(),
+            },
         )
     return redirect("dashboard")
 
@@ -368,10 +412,11 @@ def invite(request, group_id):
     ).first()
     if group and not current_group_member:
         if request.method == "POST":
-            new_group_member = GroupMember(
-                user=request.user, group=group, is_admin=False
+            GroupMember.objects.update_or_create(
+                user=request.user,
+                group=group,
+                defaults={"is_admin": False, "is_deleted": False},
             )
-            new_group_member.save()
             return redirect("view_group", group.id)
         return render(request, "group_invite.html", {"group_name": group.name})
     return redirect("dashboard")

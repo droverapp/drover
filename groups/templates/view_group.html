@@ -48,6 +48,29 @@
             <button type="submit" name="status" value="not_going" class="btn btn-sm btn-outline-secondary">Not Going</button>
           </form>
         </div>
+        {% if is_admin %}
+        <div class="event-rsvp-roster mt-2">
+          <small><b>RSVPs:</b></small>
+          {% if event.rsvps.all %}
+            <ul class="rsvp-attendee-list">
+              {% for rsvp in event.rsvps.all %}
+                <li>{{ rsvp.user }}: {{ rsvp.get_status_display }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p><small>No RSVPs yet.</small></p>
+          {% endif %}
+          <p class="rsvp-message-links">
+            <small>
+              Message RSVP group:
+              <a href="{% url 'send_message' group.id %}?event_id={{ event.id }}&rsvp_status=GOING">Going</a> ·
+              <a href="{% url 'send_message' group.id %}?event_id={{ event.id }}&rsvp_status=MAYBE">Maybe</a> ·
+              <a href="{% url 'send_message' group.id %}?event_id={{ event.id }}&rsvp_status=NOT_GOING">Not Going</a>
+            </small>
+          </p>
+        </div>
+        {% endif %}
+      </div>
     {% endfor %}
     {% endif %}
   </div>
