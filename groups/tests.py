@@ -1098,3 +1098,53 @@ class EventRSVPAdminRosterAndMessagingTests(TestCase):
         membership.refresh_from_db()
         self.assertFalse(membership.is_deleted)
         self.assertTrue(membership.is_admin)
+
+
+class EventDateHandlingAndRangeTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="dates-owner@example.com", password="pw"
+        )
+        self.client.force_login(self.owner)
+
+    def test_create_group_allows_events_with_and_without_event_time(self):
+        response = self.client.post(
+            reverse("create_group"),
+            {
+                "name": "Reunion Weekend",
+                "description": "<p>Family trip</p>",
+                "venue": "Lake Tahoe",
+                "event_id[]": ["0", "0"],
+                "event_name[]": ["Welcome Dinner", "Open Afternoon"],
+                "event_time[]": ["06/12/2026 06:00 PM", ""],
+                "event_instructions[]": ["Casual", ""],
+                "event_venue_name[]": ["Lodge", ""],
+                "event_venue_address[]": ["100 Lake Rd", ""],
+                "event_venue_map[]": ["", ""],
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        group = Group.objects.get(name="Reunion Weekend")
+        dinner = GroupEvent.objects.get(group=group, name="Welcome Dinner")
+        afternoon = GroupEvent.objects.get(group=group, name="Open Afternoon")
+        self.assertIsNotNone(dinner.event_time)
+        self.assertIsNone(afternoon.event_time)
+
+    def test_view_group_displays_overall_event_date_range(self):
+        group = Group.objects.create(name="Conference", owner=self.owner)
+        GroupMember.objects.create(
+            user=self.owner, group=group, owner=True, is_admin=True
+        )
+        GroupEvent.objects.create(
+            group=group,
+            name="Day 1 Keynote",
+            event_time="2026-09-10T09:00:00Z",
+        )
+        GroupEvent.objects.create(
+            group=group,
+            name="Day 3 Closing",
+            event_time="2026-09-12T17:00:00Z",
+        )
+        response = self.client.get(reverse("view_group", args=[group.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sep 10, 2026 – Sep 12, 2026")

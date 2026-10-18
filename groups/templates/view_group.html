@@ -15,6 +15,9 @@
     </p>
     {% if events|length > 0 %}
     <h5>Events:</h5>
+    {% if event_date_range %}
+    <p class="event-date-range"><b>Event Dates:</b> {{ event_date_range }}</p>
+    {% endif %}
     {% for event in events %}
       <div class="event">
         <b class="event-title">{{ event.name }}</b>
